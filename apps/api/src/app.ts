@@ -1,7 +1,7 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express } from 'express';
-import helmet from 'helmet';
+import * as helmetModule from 'helmet';
 import mongoose from 'mongoose';
 import pino from 'pino';
 import { pinoHttp } from 'pino-http';
@@ -30,6 +30,15 @@ import { buildAuthRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/users/users.routes.js';
 import { logger } from './utils/logger.js';
 import { redactTokens } from './utils/mailer.js';
+
+/**
+ * Helmet ships separate ESM and CommonJS type declarations. Depending on the
+ * compiler's module mode, a default import resolves to either the middleware
+ * or the whole module namespace (Vercel's build hit the latter: TS2349).
+ * The namespace's `default` is the middleware in every mode, at compile time
+ * and at runtime (ESM namespace and CJS `module.exports.default` alike).
+ */
+const helmet = helmetModule.default;
 
 /** Request-log URL with one-time tokens removed (query `token=` and `/invitations/:token`). */
 export const redactUrl = (url: string) =>
