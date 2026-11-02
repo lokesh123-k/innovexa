@@ -11,3 +11,6 @@ playwright-report/
 test-results/
 .vite/
 .dev-db/
+
+# Vercel CLI local build output / project link
+.vercel

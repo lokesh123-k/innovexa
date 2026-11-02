@@ -79,7 +79,7 @@ The API deploys as a separate Vercel project using Vercel's zero-config Express 
 |---|---|
 | Root Directory | `apps/api` |
 | Framework Preset | Express (set by `apps/api/vercel.json`) |
-| Install Command | from `vercel.json`: `cd ../.. && MONGOMS_DISABLE_POSTINSTALL=1 npm ci --include=dev` |
+| Install Command | from `vercel.json`: `cd ../.. && npm ci --include=dev` (the in-memory MongoDB download is disabled through root `package.json` `config`) |
 | Build Command | from `vercel.json`: `cd ../.. && npm run build -w @innovexa/shared && npm run typecheck -w @innovexa/api` |
 | Output Directory | leave empty (not used by Express functions) |
 | Include files outside root directory | enabled (needed for `packages/shared`) |
