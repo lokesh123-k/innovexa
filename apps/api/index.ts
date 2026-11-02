@@ -13,7 +13,7 @@
  */
 import express, { type Express } from 'express';
 import { createApp } from './src/app.js';
-import { env } from './src/config/env.js';
+import { ConfigError, env } from './src/config/env.js';
 import { ensureDatabase } from './src/config/db.js';
 import './src/models.js';
 import { ensureDefaultCategories } from './src/modules/service-categories/serviceCategories.routes.js';
@@ -41,10 +41,19 @@ function build(): Express {
   try {
     return createApp({ prepare: ready });
   } catch (err) {
-    logger.fatal(
-      { err },
-      'API not started: fix the environment variables listed above and redeploy',
-    );
+    // Variable names and rules are already public in the source code; values never appear.
+    // They are shown only while the API is unusable, so the deployment can be fixed without log access.
+    const issues = err instanceof ConfigError ? err.issues : undefined;
+    if (issues) {
+      logger.fatal(
+        { invalidVariables: issues.map((i) => i.variable) },
+        `API not started. Invalid environment variables: ${issues
+          .map((i) => `${i.variable} (${i.problem})`)
+          .join('; ')}. Fix them in the Vercel project settings and redeploy.`,
+      );
+    } else {
+      logger.fatal({ err }, 'API not started: unexpected startup error');
+    }
     const fallback = express();
     fallback.disable('x-powered-by');
     fallback.use((_req, res) => {
@@ -52,7 +61,10 @@ function build(): Express {
         success: false,
         error: {
           code: 'SERVICE_MISCONFIGURED',
-          message: 'The API is not configured correctly. See the server logs.',
+          message: issues
+            ? 'The API is not configured correctly: fix the listed environment variables and redeploy.'
+            : 'The API failed to start. See the server logs.',
+          ...(issues && { details: issues }),
         },
       });
     });

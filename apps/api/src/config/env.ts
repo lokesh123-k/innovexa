@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
+/** Accepts true/false/1/0 in any case, ignoring surrounding whitespace (hosting dashboards vary). */
 const bool = (fallback: boolean) =>
-  z
-    .enum(['true', 'false', '1', '0'])
-    .optional()
-    .transform((v) => (v === undefined ? fallback : v === 'true' || v === '1'));
+  z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim().toLowerCase() : v),
+    z
+      .enum(['true', 'false', '1', '0'])
+      .optional()
+      .transform((v) => (v === undefined ? fallback : v === 'true' || v === '1')),
+  );
+
+/** Browsers send Origin without a trailing slash, so `https://app.example/` must match too. */
+const stripSlash = (s: string) => s.replace(/\/+$/, '');
 
 const envSchema = z
   .object({
@@ -34,14 +41,14 @@ const envSchema = z
     /** `none` when the web app and API are on different sites (e.g. two *.vercel.app domains). */
     COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 
-    APP_URL: z.url().default('http://localhost:5173'),
+    APP_URL: z.url().default('http://localhost:5173').transform(stripSlash),
     CORS_ORIGINS: z
       .string()
       .default('http://localhost:5173')
       .transform((s) =>
         s
           .split(',')
-          .map((o) => o.trim())
+          .map((o) => stripSlash(o.trim()))
           .filter(Boolean),
       ),
     RATE_LIMIT_ENABLED: bool(true),
@@ -151,15 +158,36 @@ const envSchema = z
 
 export type Env = z.infer<typeof envSchema>;
 
+/** One rejected variable: its name and the rule it broke. Never contains the value. */
+export interface ConfigIssue {
+  variable: string;
+  problem: string;
+}
+
+/** Thrown by env() when the environment is invalid; `issues` is safe to log. */
+export class ConfigError extends Error {
+  constructor(readonly issues: ConfigIssue[]) {
+    super(
+      `Invalid environment configuration:\n${issues.map((i) => `  - ${i.variable}: ${i.problem}`).join('\n')}`,
+    );
+    this.name = 'ConfigError';
+  }
+}
+
 let cached: Env | undefined;
 
-/** Parsed, validated configuration. Throws a readable error listing every invalid variable. */
+/** Parsed, validated configuration. Throws a ConfigError listing every invalid variable. */
 export function env(): Env {
   if (!cached) {
     const parsed = envSchema.safeParse(process.env);
     if (!parsed.success) {
-      const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
-      throw new Error(`Invalid environment configuration:\n${lines.join('\n')}`);
+      throw new ConfigError(
+        parsed.error.issues.map((i) => ({
+          variable: i.path.join('.') || '(environment)',
+          // Zod messages describe the rule (e.g. "expected string, received undefined"), not the input.
+          problem: i.message,
+        })),
+      );
     }
     cached = parsed.data;
   }

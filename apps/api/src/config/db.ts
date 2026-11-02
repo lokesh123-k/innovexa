@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 
 // Unknown filter keys are dropped rather than matched. Operator injection is prevented upstream:
@@ -17,7 +18,13 @@ export function ensureDatabase(uri: string): Promise<typeof mongoose> {
   // autoIndex stays on so a fresh production database gets its unique indexes (idempotent).
   pending ??= connectDatabase(uri, 2, { maxPoolSize: 5 }).catch((err: unknown) => {
     pending = undefined; // let the next request retry
-    throw err;
+    // The driver's message names the cause (auth, DNS, IP allowlist) but never the password.
+    logger.error({ err }, 'MongoDB unavailable: check MONGODB_URI and Atlas Network Access');
+    throw new AppError(
+      503,
+      'DATABASE_UNAVAILABLE',
+      'The database is unavailable. Please try again.',
+    );
   });
   return pending;
 }

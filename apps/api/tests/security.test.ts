@@ -144,6 +144,57 @@ describe('serverless (Vercel) behaviour', () => {
     }
   });
 
+  it('names every invalid variable without echoing values', async () => {
+    const { ConfigError, env, resetEnvCache } = await import('../src/config/env');
+    const saved = { ...process.env };
+    Object.assign(process.env, {
+      NODE_ENV: 'production',
+      COOKIE_SECURE: 'yes-please',
+      CORS_ORIGINS: 'http://plain-http.example',
+      JWT_ACCESS_SECRET: 'short-but-32-characters-long-xyz!!',
+    });
+    delete process.env.MONGODB_URI;
+    resetEnvCache();
+    try {
+      let caught: unknown;
+      try {
+        env();
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(ConfigError);
+      const issues = (caught as InstanceType<typeof ConfigError>).issues;
+      expect(issues.map((i) => i.variable)).toEqual(
+        expect.arrayContaining(['MONGODB_URI', 'COOKIE_SECURE']),
+      );
+      const text = JSON.stringify(issues);
+      expect(text).not.toContain('yes-please');
+      expect(text).not.toContain('short-but-32');
+    } finally {
+      for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+      Object.assign(process.env, saved);
+      resetEnvCache();
+    }
+  });
+
+  it('accepts common formatting of booleans and origins', async () => {
+    const { env, resetEnvCache } = await import('../src/config/env');
+    process.env.COOKIE_SECURE = ' TRUE ';
+    process.env.CORS_ORIGINS = 'https://web.example/, https://other.example';
+    process.env.APP_URL = 'https://web.example/';
+    resetEnvCache();
+    try {
+      expect(env().COOKIE_SECURE).toBe(true);
+      expect(env().CORS_ORIGINS).toEqual(['https://web.example', 'https://other.example']);
+      expect(env().APP_URL).toBe('https://web.example');
+    } finally {
+      delete process.env.COOKIE_SECURE;
+      process.env.CORS_ORIGINS = 'http://localhost:5173';
+      process.env.APP_URL = 'http://localhost:5173';
+      resetEnvCache();
+    }
+  });
+
   it('answers health even when per-request preparation fails', async () => {
     const app = createApp({ prepare: () => Promise.reject(new Error('db down')) });
     const health = await request(app).get(`${API}/health`);
