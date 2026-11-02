@@ -1,0 +1,159 @@
+import { z } from 'zod';
+
+const bool = (fallback: boolean) =>
+  z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((v) => (v === undefined ? fallback : v === 'true' || v === '1'));
+
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().positive().default(4000),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
+    TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+
+    MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
+
+    JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+    JWT_ISSUER: z.string().default('innovexa-api'),
+    JWT_AUDIENCE: z.string().default('innovexa-web'),
+    ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+    // A rotated refresh token re-presented within this window (multi-tab race) is not treated as theft.
+    REFRESH_REUSE_GRACE_SECONDS: z.coerce.number().int().min(0).max(120).default(30),
+    INVITE_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(72),
+    RESET_TOKEN_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(60),
+    VERIFY_TOKEN_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(48),
+    BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+    MAX_FAILED_LOGINS: z.coerce.number().int().min(1).default(5),
+    LOCKOUT_MINUTES: z.coerce.number().int().min(1).default(15),
+
+    COOKIE_DOMAIN: z.string().optional(),
+    COOKIE_SECURE: bool(false),
+
+    APP_URL: z.url().default('http://localhost:5173'),
+    CORS_ORIGINS: z
+      .string()
+      .default('http://localhost:5173')
+      .transform((s) =>
+        s
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean),
+      ),
+    RATE_LIMIT_ENABLED: bool(true),
+    // General API budget per IP per 15 minutes; sign-in and token endpoints have stricter limits.
+    RATE_LIMIT_PER_15_MIN: z.coerce.number().int().min(100).default(3000),
+    JOBS_ENABLED: bool(true),
+
+    UPLOAD_DIR: z.string().default('uploads'),
+    MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(50).default(10),
+
+    // Online payments are disabled unless all Razorpay keys are present.
+    RAZORPAY_KEY_ID: z.string().optional(),
+    RAZORPAY_KEY_SECRET: z.string().optional(),
+    RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+
+    EMAIL_TRANSPORT: z.enum(['smtp', 'log', 'memory']).default('log'),
+    EMAIL_FROM: z.string().default('Innovexa Digital <no-reply@innovexadigital.com>'),
+    /** Public URL of the logo for emails. Defaults to APP_URL + /innovex.logo.jpeg. */
+    EMAIL_LOGO_URL: z.url().optional(),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_SECURE: bool(false),
+    /** SMTP login. SENDER_EMAIL / SENDER_PASSWORD take precedence over SMTP_USER / SMTP_PASS. */
+    SENDER_EMAIL: z.string().trim().optional(),
+    SENDER_PASSWORD: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+  })
+  .superRefine((env, ctx) => {
+    if (env.EMAIL_TRANSPORT === 'smtp') {
+      if (!env.SMTP_HOST) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['SMTP_HOST'],
+          message: 'SMTP_HOST is required for smtp transport',
+        });
+      }
+      if (!(env.SENDER_EMAIL || env.SMTP_USER)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['SENDER_EMAIL'],
+          message: 'SENDER_EMAIL is required for smtp transport',
+        });
+      }
+      if (!(env.SENDER_PASSWORD || env.SMTP_PASS)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['SENDER_PASSWORD'],
+          message: 'SENDER_PASSWORD is required for smtp transport',
+        });
+      }
+    }
+    if (env.NODE_ENV === 'production') {
+      if (!env.COOKIE_SECURE) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['COOKIE_SECURE'],
+          message: 'COOKIE_SECURE must be true in production',
+        });
+      }
+      if (
+        /change[-_]?me|secret|example/i.test(env.JWT_ACCESS_SECRET) ||
+        env.JWT_ACCESS_SECRET.length < 48
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['JWT_ACCESS_SECRET'],
+          message: 'Use a random secret of at least 48 characters in production',
+        });
+      }
+      if (env.EMAIL_TRANSPORT !== 'smtp') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['EMAIL_TRANSPORT'],
+          message: 'Production requires smtp email transport',
+        });
+      }
+      const logo = env.EMAIL_LOGO_URL ?? `${env.APP_URL}/innovex.logo.jpeg`;
+      if (!logo.startsWith('https://') || /localhost|127\.0\.0\.1/.test(logo)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['EMAIL_LOGO_URL'],
+          message:
+            'Emails need a public https logo URL in production (set EMAIL_LOGO_URL or an https APP_URL)',
+        });
+      }
+      if (env.CORS_ORIGINS.some((o) => o.startsWith('http://'))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CORS_ORIGINS'],
+          message: 'Production origins must use https',
+        });
+      }
+    }
+  });
+
+export type Env = z.infer<typeof envSchema>;
+
+let cached: Env | undefined;
+
+/** Parsed, validated configuration. Throws a readable error listing every invalid variable. */
+export function env(): Env {
+  if (!cached) {
+    const parsed = envSchema.safeParse(process.env);
+    if (!parsed.success) {
+      const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
+      throw new Error(`Invalid environment configuration:\n${lines.join('\n')}`);
+    }
+    cached = parsed.data;
+  }
+  return cached;
+}
+
+/** Test hook: re-read process.env on next access. */
+export function resetEnvCache(): void {
+  cached = undefined;
+}

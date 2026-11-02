@@ -1,0 +1,22 @@
+/** Registers every Mongoose model so indexes can be synced and refs resolve. */
+export { User } from './modules/users/user.model';
+export { RefreshSession } from './modules/auth/refreshSession.model';
+export { AuthToken } from './modules/auth/authToken.model';
+export { AuditLog } from './modules/audit-logs/auditLog.model';
+export { Client } from './modules/clients/client.model';
+export { ServiceCategory } from './modules/service-categories/serviceCategory.model';
+export { Project } from './modules/projects/project.model';
+export { Milestone } from './modules/milestones/milestone.model';
+export { Task } from './modules/tasks/task.model';
+export { TaskUpdate } from './modules/task-updates/taskUpdate.model';
+export { WorkReport } from './modules/reports/workReport.model';
+export { Conversation } from './modules/conversations/conversation.model';
+export { Message } from './modules/messages/message.model';
+export { ChangeRequest } from './modules/change-requests/changeRequest.model';
+export { Invoice } from './modules/invoices/invoice.model';
+export { Installment } from './modules/installments/installment.model';
+export { Payment } from './modules/payments/payment.model';
+export { WebhookEvent } from './modules/payments/webhookEvent.model';
+export { FileModel } from './modules/files/file.model';
+export { Notification } from './modules/notifications/notification.model';
+export { Counter } from './utils/sequence';
