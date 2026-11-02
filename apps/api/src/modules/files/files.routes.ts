@@ -2,13 +2,13 @@ import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { FILE_VISIBILITIES, Role, idParamSchema, objectIdSchema } from '@innovexa/shared';
-import { env } from '../../config/env';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { AppError } from '../../utils/AppError';
-import { ok } from '../../utils/http';
-import { recordAudit } from '../audit-logs/auditLog.service';
+import { env } from '../../config/env.js';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { AppError } from '../../utils/AppError.js';
+import { ok } from '../../utils/http.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
 import {
   UPLOADABLE_SCOPES,
   getFileForDownload,
@@ -16,7 +16,7 @@ import {
   publishToClient,
   toFileDTO,
   uploadFile,
-} from './files.service';
+} from './files.service.js';
 
 const uploadFields = z.object({
   kind: z.enum(UPLOADABLE_SCOPES),

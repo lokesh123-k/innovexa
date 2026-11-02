@@ -1,5 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
-import { ref, refs } from '../../utils/schemaTypes';
+import { ref, refs } from '../../utils/schemaTypes.js';
 
 const messageSchema = new Schema(
   {

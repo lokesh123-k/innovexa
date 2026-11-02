@@ -15,19 +15,19 @@ import {
   type UpdateMilestoneInput,
   type UpdateProjectInput,
 } from '@innovexa/shared';
-import type { AuthUser } from '../../types/express';
-import { loadProjectFor, projectScope } from '../../utils/access';
-import { AppError } from '../../utils/AppError';
-import { escapeRegex, pageMeta } from '../../utils/http';
-import { formatCode, nextSequence } from '../../utils/sequence';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { Client } from '../clients/client.model';
-import { Milestone } from '../milestones/milestone.model';
-import { notify } from '../notifications/notification.service';
-import { ServiceCategory } from '../service-categories/serviceCategory.model';
-import { Task } from '../tasks/task.model';
-import { User } from '../users/user.model';
-import { Project } from './project.model';
+import type { AuthUser } from '../../types/express.js';
+import { loadProjectFor, projectScope } from '../../utils/access.js';
+import { AppError } from '../../utils/AppError.js';
+import { escapeRegex, pageMeta } from '../../utils/http.js';
+import { formatCode, nextSequence } from '../../utils/sequence.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { Client } from '../clients/client.model.js';
+import { Milestone } from '../milestones/milestone.model.js';
+import { notify } from '../notifications/notification.service.js';
+import { ServiceCategory } from '../service-categories/serviceCategory.model.js';
+import { Task } from '../tasks/task.model.js';
+import { User } from '../users/user.model.js';
+import { Project } from './project.model.js';
 
 const DONE: string[] = [TaskStatus.APPROVED, TaskStatus.COMPLETED];
 

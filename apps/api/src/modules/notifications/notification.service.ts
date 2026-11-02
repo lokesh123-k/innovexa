@@ -1,11 +1,11 @@
 import type { Types } from 'mongoose';
 import { Role, UserStatus, type NotificationType } from '@innovexa/shared';
-import { env } from '../../config/env';
-import { emitToUsers } from '../../sockets/io';
-import { pageMeta } from '../../utils/http';
-import { actionEmail, sendMailSafe } from '../../utils/mailer';
-import { User } from '../users/user.model';
-import { Notification } from './notification.model';
+import { env } from '../../config/env.js';
+import { emitToUsers } from '../../sockets/io.js';
+import { pageMeta } from '../../utils/http.js';
+import { actionEmail, sendMailSafe } from '../../utils/mailer.js';
+import { User } from '../users/user.model.js';
+import { Notification } from './notification.model.js';
 
 type Id = Types.ObjectId | string;
 

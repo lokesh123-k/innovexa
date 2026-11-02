@@ -2,10 +2,10 @@ import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Types } from 'mongoose';
 import { ROLES, UserStatus, type Role } from '@innovexa/shared';
-import { env } from '../config/env';
-import { User } from '../modules/users/user.model';
-import { AppError } from '../utils/AppError';
-import { ACCESS_COOKIE } from '../modules/auth/auth.cookies';
+import { env } from '../config/env.js';
+import { User } from '../modules/users/user.model.js';
+import { AppError } from '../utils/AppError.js';
+import { ACCESS_COOKIE } from '../modules/auth/auth.cookies.js';
 
 interface AccessClaims {
   sub: string;

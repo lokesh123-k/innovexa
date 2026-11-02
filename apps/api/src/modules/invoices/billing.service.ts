@@ -18,21 +18,21 @@ import {
   type RecordOfflinePaymentInput,
   type VerifyPaymentInput,
 } from '@innovexa/shared';
-import { env } from '../../config/env';
-import type { AuthUser } from '../../types/express';
-import { loadProjectFor } from '../../utils/access';
-import { AppError } from '../../utils/AppError';
-import { safeEqual, sha256 } from '../../utils/crypto';
-import { pageMeta } from '../../utils/http';
-import { logger } from '../../utils/logger';
-import { formatCode, nextSequence } from '../../utils/sequence';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { Installment } from '../installments/installment.model';
-import { notify, notifyAdmins } from '../notifications/notification.service';
-import { Payment } from '../payments/payment.model';
-import { WebhookEvent } from '../payments/webhookEvent.model';
-import { clientUserIds } from '../projects/projects.service';
-import { Invoice } from './invoice.model';
+import { env } from '../../config/env.js';
+import type { AuthUser } from '../../types/express.js';
+import { loadProjectFor } from '../../utils/access.js';
+import { AppError } from '../../utils/AppError.js';
+import { safeEqual, sha256 } from '../../utils/crypto.js';
+import { pageMeta } from '../../utils/http.js';
+import { logger } from '../../utils/logger.js';
+import { formatCode, nextSequence } from '../../utils/sequence.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { Installment } from '../installments/installment.model.js';
+import { notify, notifyAdmins } from '../notifications/notification.service.js';
+import { Payment } from '../payments/payment.model.js';
+import { WebhookEvent } from '../payments/webhookEvent.model.js';
+import { clientUserIds } from '../projects/projects.service.js';
+import { Invoice } from './invoice.model.js';
 
 const PAYABLE: string[] = [
   InvoiceStatus.ISSUED,

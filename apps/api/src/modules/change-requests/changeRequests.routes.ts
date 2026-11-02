@@ -15,21 +15,21 @@ import {
   listChangeRequestsQuerySchema,
   type CreateChangeRequestInput,
 } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import type { AuthUser } from '../../types/express';
-import { loadProjectFor } from '../../utils/access';
-import { AppError } from '../../utils/AppError';
-import { ok, pageMeta } from '../../utils/http';
-import { formatCode, nextSequence } from '../../utils/sequence';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { FileModel } from '../files/file.model';
-import { notify, notifyAdmins } from '../notifications/notification.service';
-import { Project } from '../projects/project.model';
-import { clientUserIds } from '../projects/projects.service';
-import { createTask } from '../tasks/tasks.service';
-import { ChangeRequest } from './changeRequest.model';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import type { AuthUser } from '../../types/express.js';
+import { loadProjectFor } from '../../utils/access.js';
+import { AppError } from '../../utils/AppError.js';
+import { ok, pageMeta } from '../../utils/http.js';
+import { formatCode, nextSequence } from '../../utils/sequence.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { FileModel } from '../files/file.model.js';
+import { notify, notifyAdmins } from '../notifications/notification.service.js';
+import { Project } from '../projects/project.model.js';
+import { clientUserIds } from '../projects/projects.service.js';
+import { createTask } from '../tasks/tasks.service.js';
+import { ChangeRequest } from './changeRequest.model.js';
 
 function scope(user: AuthUser) {
   if (user.role === Role.ADMIN) return {};

@@ -9,11 +9,11 @@ import {
   recordOfflinePaymentSchema,
   verifyPaymentSchema,
 } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import * as svc from './billing.service';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import * as svc from './billing.service.js';
 
 const id = (req: Parameters<typeof valid>[0]) => valid<{ id: string }>(req, 'params').id;
 

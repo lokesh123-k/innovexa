@@ -6,11 +6,11 @@ import type {
   UpdateOwnProfileInput,
   UpdateUserInput,
 } from '@innovexa/shared';
-import { currentUser } from '../../middleware/authenticate';
-import { valid } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import { toUserDTO } from './user.serializer';
-import * as users from './users.service';
+import { currentUser } from '../../middleware/authenticate.js';
+import { valid } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import { toUserDTO } from './user.serializer.js';
+import * as users from './users.service.js';
 
 const idParam = (req: Request) => valid<{ id: string }>(req, 'params').id;
 

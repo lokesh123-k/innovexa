@@ -5,30 +5,31 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import pino from 'pino';
 import { pinoHttp } from 'pino-http';
-import { env } from './config/env';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler';
-import { buildRateLimiters, originGuard } from './middleware/security';
-import { auditLogRouter } from './modules/audit-logs/auditLog.routes';
-import { changeRequestsRouter } from './modules/change-requests/changeRequests.routes';
-import { clientsRouter } from './modules/clients/clients.routes';
-import { conversationsRouter } from './modules/conversations/conversations.routes';
-import { buildFilesRouter } from './modules/files/files.routes';
+import { env } from './config/env.js';
+import { cronRouter } from './jobs/cron.routes.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { buildRateLimiters, originGuard } from './middleware/security.js';
+import { auditLogRouter } from './modules/audit-logs/auditLog.routes.js';
+import { changeRequestsRouter } from './modules/change-requests/changeRequests.routes.js';
+import { clientsRouter } from './modules/clients/clients.routes.js';
+import { conversationsRouter } from './modules/conversations/conversations.routes.js';
+import { buildFilesRouter } from './modules/files/files.routes.js';
 import {
   invoicesRouter,
   paymentWebhookRouter,
   paymentsRouter,
-} from './modules/invoices/billing.routes';
-import { notificationsRouter } from './modules/notifications/notification.routes';
-import { milestonesRouter, projectsRouter } from './modules/projects/projects.routes';
-import { dashboardRouter } from './modules/reports/dashboards.routes';
-import { reportsRouter } from './modules/reports/reports.routes';
-import { workReportsRouter } from './modules/reports/workReports.routes';
-import { serviceCategoriesRouter } from './modules/service-categories/serviceCategories.routes';
-import { tasksRouter } from './modules/tasks/tasks.routes';
-import { buildAuthRouter } from './modules/auth/auth.routes';
-import { usersRouter } from './modules/users/users.routes';
-import { logger } from './utils/logger';
-import { redactTokens } from './utils/mailer';
+} from './modules/invoices/billing.routes.js';
+import { notificationsRouter } from './modules/notifications/notification.routes.js';
+import { milestonesRouter, projectsRouter } from './modules/projects/projects.routes.js';
+import { dashboardRouter } from './modules/reports/dashboards.routes.js';
+import { reportsRouter } from './modules/reports/reports.routes.js';
+import { workReportsRouter } from './modules/reports/workReports.routes.js';
+import { serviceCategoriesRouter } from './modules/service-categories/serviceCategories.routes.js';
+import { tasksRouter } from './modules/tasks/tasks.routes.js';
+import { buildAuthRouter } from './modules/auth/auth.routes.js';
+import { usersRouter } from './modules/users/users.routes.js';
+import { logger } from './utils/logger.js';
+import { redactTokens } from './utils/mailer.js';
 
 /** Request-log URL with one-time tokens removed (query `token=` and `/invitations/:token`). */
 export const redactUrl = (url: string) =>
@@ -36,6 +37,11 @@ export const redactUrl = (url: string) =>
 
 export interface AppOptions {
   rateLimitEnabled?: boolean;
+  /**
+   * Runs before any route (e.g. serverless: make sure the database is connected).
+   * Failures are answered by the normal JSON error handler.
+   */
+  prepare?: () => Promise<unknown>;
 }
 
 export function createApp(options: AppOptions = {}): Express {
@@ -59,6 +65,12 @@ export function createApp(options: AppOptions = {}): Express {
     }),
   );
   app.use(originGuard(cfg.CORS_ORIGINS));
+  if (options.prepare) {
+    const prepare = options.prepare;
+    app.use((_req, _res, next) => {
+      prepare().then(() => next(), next);
+    });
+  }
   // Payment webhooks need the raw body for signature checks, so they precede the JSON parser.
   app.use('/api/v1/payments/webhooks', paymentWebhookRouter);
   app.use(express.json({ limit: '1mb' }));
@@ -107,6 +119,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/api/v1/payments', paymentsRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
   app.use('/api/v1/reports', reportsRouter);
+  app.use('/api/v1/internal/cron', cronRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

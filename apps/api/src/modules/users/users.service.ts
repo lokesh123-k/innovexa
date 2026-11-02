@@ -11,15 +11,15 @@ import {
   type UpdateOwnProfileInput,
   type UpdateUserInput,
 } from '@innovexa/shared';
-import { env } from '../../config/env';
-import { AppError } from '../../utils/AppError';
-import { escapeRegex, pageMeta } from '../../utils/http';
-import { MailDeliveryError, actionEmail, sendMail } from '../../utils/mailer';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { issueAuthToken } from '../auth/authToken.service';
-import { revokeAllSessions } from '../auth/auth.service';
-import { Client } from '../clients/client.model';
-import { User, type UserDoc } from './user.model';
+import { env } from '../../config/env.js';
+import { AppError } from '../../utils/AppError.js';
+import { escapeRegex, pageMeta } from '../../utils/http.js';
+import { MailDeliveryError, actionEmail, sendMail } from '../../utils/mailer.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { issueAuthToken } from '../auth/authToken.service.js';
+import { revokeAllSessions } from '../auth/auth.service.js';
+import { Client } from '../clients/client.model.js';
+import { User, type UserDoc } from './user.model.js';
 
 const ROLE_LABEL: Record<Role, string> = {
   [Role.ADMIN]: 'Admin Portal',

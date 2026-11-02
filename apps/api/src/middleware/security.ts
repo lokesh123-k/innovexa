@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import { AppError } from '../utils/AppError';
+import { AppError } from '../utils/AppError.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 

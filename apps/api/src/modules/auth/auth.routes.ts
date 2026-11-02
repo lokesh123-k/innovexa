@@ -1,7 +1,7 @@
 import { Router, type RequestHandler } from 'express';
-import { authenticate } from '../../middleware/authenticate';
-import { validate } from '../../middleware/validate';
-import * as ctrl from './auth.controller';
+import { authenticate } from '../../middleware/authenticate.js';
+import { validate } from '../../middleware/validate.js';
+import * as ctrl from './auth.controller.js';
 import {
   acceptInvitationSchema,
   changePasswordSchema,
@@ -10,7 +10,7 @@ import {
   loginSchema,
   resetPasswordSchema,
   verifyEmailSchema,
-} from './auth.validation';
+} from './auth.validation.js';
 
 /** `strictLimiter` guards token endpoints; `loginLimiter` counts failed sign-ins only. */
 export function buildAuthRouter(strictLimiter: RequestHandler, loginLimiter: RequestHandler) {

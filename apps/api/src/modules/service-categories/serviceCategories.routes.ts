@@ -7,13 +7,13 @@ import {
   idParamSchema,
   updateServiceCategorySchema,
 } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { AppError } from '../../utils/AppError';
-import { ok } from '../../utils/http';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { ServiceCategory, slugify } from './serviceCategory.model';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { AppError } from '../../utils/AppError.js';
+import { ok } from '../../utils/http.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { ServiceCategory, slugify } from './serviceCategory.model.js';
 
 /** Idempotently inserts the default categories (startup and seed). */
 export async function ensureDefaultCategories(): Promise<void> {

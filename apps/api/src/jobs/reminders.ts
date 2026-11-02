@@ -5,12 +5,12 @@ import {
   TaskStatus,
   formatMoney,
 } from '@innovexa/shared';
-import { Installment } from '../modules/installments/installment.model';
-import { Invoice } from '../modules/invoices/invoice.model';
-import { notify, notifyAdmins } from '../modules/notifications/notification.service';
-import { clientUserIds } from '../modules/projects/projects.service';
-import { Task } from '../modules/tasks/task.model';
-import { logger } from '../utils/logger';
+import { Installment } from '../modules/installments/installment.model.js';
+import { Invoice } from '../modules/invoices/invoice.model.js';
+import { notify, notifyAdmins } from '../modules/notifications/notification.service.js';
+import { clientUserIds } from '../modules/projects/projects.service.js';
+import { Task } from '../modules/tasks/task.model.js';
+import { logger } from '../utils/logger.js';
 
 const OPEN_TASK = [
   TaskStatus.ASSIGNED,

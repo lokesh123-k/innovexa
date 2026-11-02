@@ -14,19 +14,19 @@ import {
   type CreateConversationInput,
   type SendMessageInput,
 } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { valid, validate } from '../../middleware/validate';
-import { emitToRole, emitToUsers, isOnline } from '../../sockets/io';
-import type { AuthUser } from '../../types/express';
-import { AppError } from '../../utils/AppError';
-import { escapeRegex, ok } from '../../utils/http';
-import { assertOwnAttachments } from '../files/files.service';
-import { FileModel } from '../files/file.model';
-import { Message } from '../messages/message.model';
-import { notify, notifyAdmins } from '../notifications/notification.service';
-import { Project } from '../projects/project.model';
-import { User } from '../users/user.model';
-import { Conversation } from './conversation.model';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { emitToRole, emitToUsers, isOnline } from '../../sockets/io.js';
+import type { AuthUser } from '../../types/express.js';
+import { AppError } from '../../utils/AppError.js';
+import { escapeRegex, ok } from '../../utils/http.js';
+import { assertOwnAttachments } from '../files/files.service.js';
+import { FileModel } from '../files/file.model.js';
+import { Message } from '../messages/message.model.js';
+import { notify, notifyAdmins } from '../notifications/notification.service.js';
+import { Project } from '../projects/project.model.js';
+import { User } from '../users/user.model.js';
+import { Conversation } from './conversation.model.js';
 
 /**
  * Threads are always between one partner/client and the Innovexa admin team.

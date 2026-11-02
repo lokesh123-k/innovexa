@@ -1,9 +1,9 @@
 import type { Request } from 'express';
 import type { Types } from 'mongoose';
 import type { ListAuditLogsQuery } from '@innovexa/shared';
-import { logger } from '../../utils/logger';
-import { pageMeta } from '../../utils/http';
-import { AuditLog } from './auditLog.model';
+import { logger } from '../../utils/logger.js';
+import { pageMeta } from '../../utils/http.js';
+import { AuditLog } from './auditLog.model.js';
 
 const SENSITIVE_KEYS = new Set([
   'passwordHash',

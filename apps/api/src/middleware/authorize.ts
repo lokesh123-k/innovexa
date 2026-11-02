@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { Role } from '@innovexa/shared';
-import { AppError } from '../utils/AppError';
+import { AppError } from '../utils/AppError.js';
 
 /** Role gate. Resource ownership is enforced separately in each service. */
 export const authorize =

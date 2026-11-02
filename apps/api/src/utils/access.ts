@@ -1,9 +1,9 @@
 import type { Types } from 'mongoose';
 import { Role } from '@innovexa/shared';
-import type { AuthUser } from '../types/express';
-import { Project } from '../modules/projects/project.model';
-import { Task } from '../modules/tasks/task.model';
-import { AppError } from './AppError';
+import type { AuthUser } from '../types/express.js';
+import { Project } from '../modules/projects/project.model.js';
+import { Task } from '../modules/tasks/task.model.js';
+import { AppError } from './AppError.js';
 
 /**
  * Single source of truth for "which records may this user see".

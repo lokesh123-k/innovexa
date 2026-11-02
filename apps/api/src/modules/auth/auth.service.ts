@@ -9,15 +9,15 @@ import {
   type LoginInput,
   type ResetPasswordInput,
 } from '@innovexa/shared';
-import { env } from '../../config/env';
-import { signAccessToken } from '../../middleware/authenticate';
-import { AppError } from '../../utils/AppError';
-import { generateToken, sha256 } from '../../utils/crypto';
-import { logger } from '../../utils/logger';
-import { actionEmail, sendMail, sendMailSafe } from '../../utils/mailer';
-import { User, type UserDoc } from '../users/user.model';
-import { consumeAuthToken, issueAuthToken, peekAuthToken } from './authToken.service';
-import { RefreshSession } from './refreshSession.model';
+import { env } from '../../config/env.js';
+import { signAccessToken } from '../../middleware/authenticate.js';
+import { AppError } from '../../utils/AppError.js';
+import { generateToken, sha256 } from '../../utils/crypto.js';
+import { logger } from '../../utils/logger.js';
+import { actionEmail, sendMail, sendMailSafe } from '../../utils/mailer.js';
+import { User, type UserDoc } from '../users/user.model.js';
+import { consumeAuthToken, issueAuthToken, peekAuthToken } from './authToken.service.js';
+import { RefreshSession } from './refreshSession.model.js';
 
 export interface ClientMeta {
   ip?: string;

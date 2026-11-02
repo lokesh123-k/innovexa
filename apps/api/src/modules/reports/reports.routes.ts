@@ -12,16 +12,16 @@ import {
   type ReportType,
 } from '@innovexa/shared';
 import { z } from 'zod';
-import { authenticate } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import { Invoice } from '../invoices/invoice.model';
-import { Project } from '../projects/project.model';
-import { Task } from '../tasks/task.model';
-import { TaskUpdate } from '../task-updates/taskUpdate.model';
-import { User } from '../users/user.model';
-import { WorkReport } from './workReport.model';
+import { authenticate } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import { Invoice } from '../invoices/invoice.model.js';
+import { Project } from '../projects/project.model.js';
+import { Task } from '../tasks/task.model.js';
+import { TaskUpdate } from '../task-updates/taskUpdate.model.js';
+import { User } from '../users/user.model.js';
+import { WorkReport } from './workReport.model.js';
 
 /** Lets Excel detect UTF-8. */
 const CSV_BOM = '﻿';

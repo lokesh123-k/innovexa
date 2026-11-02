@@ -1,10 +1,10 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import { Role } from '@innovexa/shared';
-import { env } from '../config/env';
-import { resolveUserFromToken } from '../middleware/authenticate';
-import { ACCESS_COOKIE } from '../modules/auth/auth.cookies';
-import { logger } from '../utils/logger';
+import { env } from '../config/env.js';
+import { resolveUserFromToken } from '../middleware/authenticate.js';
+import { ACCESS_COOKIE } from '../modules/auth/auth.cookies.js';
+import { logger } from '../utils/logger.js';
 
 let io: Server | undefined;
 /** userId -> number of open sockets, for online indicators. */

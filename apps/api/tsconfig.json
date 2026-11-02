@@ -4,5 +4,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "tests", "scripts", "vitest.config.ts", "tsup.config.ts"]
+  "include": ["index.ts", "src", "tests", "scripts", "vitest.config.ts", "tsup.config.ts"]
 }

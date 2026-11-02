@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { PRIORITIES, Priority, TASK_STATUSES, TaskStatus } from '@innovexa/shared';
-import { ref, refs } from '../../utils/schemaTypes';
+import { ref, refs } from '../../utils/schemaTypes.js';
 
 const progressField = { type: Number, default: 0, min: 0, max: 100, validate: Number.isInteger };
 

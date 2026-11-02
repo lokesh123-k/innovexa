@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { MILESTONE_STATUSES, MilestoneStatus } from '@innovexa/shared';
-import { ref } from '../../utils/schemaTypes';
+import { ref } from '../../utils/schemaTypes.js';
 
 const milestoneSchema = new Schema(
   {

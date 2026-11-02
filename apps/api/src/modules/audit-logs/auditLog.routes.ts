@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { Role, listAuditLogsQuerySchema, type ListAuditLogsQuery } from '@innovexa/shared';
-import { authenticate } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import { listAuditLogs } from './auditLog.service';
+import { authenticate } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import { listAuditLogs } from './auditLog.service.js';
 
 export const auditLogRouter = Router();
 

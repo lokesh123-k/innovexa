@@ -1,8 +1,8 @@
 import type { Types } from 'mongoose';
 import type { AuthTokenPurpose } from '@innovexa/shared';
-import { generateToken, sha256 } from '../../utils/crypto';
-import { AppError } from '../../utils/AppError';
-import { AuthToken } from './authToken.model';
+import { generateToken, sha256 } from '../../utils/crypto.js';
+import { AppError } from '../../utils/AppError.js';
+import { AuthToken } from './authToken.model.js';
 
 /** Issues a new single-use token, invalidating any outstanding token for the same purpose. */
 export async function issueAuthToken(

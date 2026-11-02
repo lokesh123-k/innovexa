@@ -2,8 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { ZodError } from 'zod';
 import { MoneyError, ProgressError } from '@innovexa/shared';
-import { AppError } from '../utils/AppError';
-import { logger } from '../utils/logger';
+import { AppError } from '../utils/AppError.js';
+import { logger } from '../utils/logger.js';
 
 export function notFoundHandler(req: Request, _res: Response, next: NextFunction): void {
   next(new AppError(404, 'ROUTE_NOT_FOUND', `Route ${req.method} ${req.path} not found`));

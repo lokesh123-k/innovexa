@@ -6,14 +6,14 @@ import type {
   LoginInput,
   ResetPasswordInput,
 } from '@innovexa/shared';
-import { currentUser } from '../../middleware/authenticate';
-import { valid } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { User } from '../users/user.model';
-import { toUserDTO } from '../users/user.serializer';
-import { REFRESH_COOKIE, clearAuthCookies, setAuthCookies } from './auth.cookies';
-import * as auth from './auth.service';
+import { currentUser } from '../../middleware/authenticate.js';
+import { valid } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { User } from '../users/user.model.js';
+import { toUserDTO } from '../users/user.serializer.js';
+import { REFRESH_COOKIE, clearAuthCookies, setAuthCookies } from './auth.cookies.js';
+import * as auth from './auth.service.js';
 
 const meta = (req: Request): auth.ClientMeta => ({ ip: req.ip, userAgent: req.get('user-agent') });
 const refreshCookie = (req: Request) => req.cookies?.[REFRESH_COOKIE] as string | undefined;

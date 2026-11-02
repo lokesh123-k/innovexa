@@ -1,13 +1,13 @@
 import { createServer } from 'node:http';
-import { createApp } from './app';
-import { env } from './config/env';
-import { connectDatabase, disconnectDatabase } from './config/db';
-import { startReminderJob } from './jobs/reminders';
-import './models';
-import { ensureDefaultCategories } from './modules/service-categories/serviceCategories.routes';
-import { initSockets } from './sockets/io';
-import { logger } from './utils/logger';
-import { verifyMailer } from './utils/mailer';
+import { createApp } from './app.js';
+import { env } from './config/env.js';
+import { connectDatabase, disconnectDatabase } from './config/db.js';
+import { startReminderJob } from './jobs/reminders.js';
+import './models.js';
+import { ensureDefaultCategories } from './modules/service-categories/serviceCategories.routes.js';
+import { initSockets } from './sockets/io.js';
+import { logger } from './utils/logger.js';
+import { verifyMailer } from './utils/mailer.js';
 
 async function main() {
   const cfg = env();

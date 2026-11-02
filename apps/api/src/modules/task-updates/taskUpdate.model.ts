@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { REVIEW_STATUSES, ReviewStatus, TASK_UPDATE_KINDS, TaskUpdateKind } from '@innovexa/shared';
-import { ref, refs } from '../../utils/schemaTypes';
+import { ref, refs } from '../../utils/schemaTypes.js';
 
 /** Immutable record of every partner progress update / submission / issue. */
 const taskUpdateSchema = new Schema(

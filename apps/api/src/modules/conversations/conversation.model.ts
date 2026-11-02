@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { CONVERSATION_TYPES, ConversationType, Role } from '@innovexa/shared';
-import { ref, refs } from '../../utils/schemaTypes';
+import { ref, refs } from '../../utils/schemaTypes.js';
 
 const conversationSchema = new Schema(
   {

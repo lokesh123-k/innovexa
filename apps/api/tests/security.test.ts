@@ -2,7 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { Role } from '@innovexa/shared';
-import { API, PASSWORD, createUser } from './helpers';
+import { API, PASSWORD, createUser, loginAs } from './helpers';
 
 describe('HTTP hardening', () => {
   const app = createApp();
@@ -84,5 +84,52 @@ describe('HTTP hardening', () => {
       ).status;
     }
     expect(last).toBe(429);
+  });
+});
+
+describe('serverless (Vercel) behaviour', () => {
+  it('refuses uploads with a clear 503 when no persistent storage exists', async () => {
+    const { resetEnvCache } = await import('../src/config/env');
+    process.env.VERCEL = '1';
+    resetEnvCache();
+    try {
+      const { agent } = await loginAs(Role.ADMIN);
+      const res = await agent
+        .post(`${API}/files`)
+        .field('kind', 'PROJECT')
+        .field('refId', '0123456789abcdef01234567')
+        .attach('file', Buffer.from('x'), { filename: 'a.txt', contentType: 'text/plain' });
+      expect(res.status).toBe(503);
+      expect(res.body.error.code).toBe('STORAGE_NOT_CONFIGURED');
+    } finally {
+      delete process.env.VERCEL;
+      resetEnvCache();
+    }
+  });
+
+  it('protects the cron route with CRON_SECRET', async () => {
+    const { resetEnvCache } = await import('../src/config/env');
+    const app = createApp();
+    expect((await request(app).get(`${API}/internal/cron/reminders`)).status).toBe(404); // disabled when unset
+    process.env.CRON_SECRET = 'test-cron-secret-0123456789';
+    resetEnvCache();
+    try {
+      expect((await request(app).get(`${API}/internal/cron/reminders`)).status).toBe(401);
+      expect(
+        (
+          await request(app)
+            .get(`${API}/internal/cron/reminders`)
+            .set('Authorization', 'Bearer wrong-secret-0123456789')
+        ).status,
+      ).toBe(401);
+      const ok = await request(app)
+        .get(`${API}/internal/cron/reminders`)
+        .set('Authorization', 'Bearer test-cron-secret-0123456789');
+      expect(ok.status).toBe(200);
+      expect(ok.body.data).toEqual({ sent: 0 });
+    } finally {
+      delete process.env.CRON_SECRET;
+      resetEnvCache();
+    }
   });
 });

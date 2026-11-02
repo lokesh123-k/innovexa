@@ -46,6 +46,10 @@ const envSchema = z
     // General API budget per IP per 15 minutes; sign-in and token endpoints have stricter limits.
     RATE_LIMIT_PER_15_MIN: z.coerce.number().int().min(100).default(3000),
     JOBS_ENABLED: bool(true),
+    /** Bearer secret Vercel Cron sends to /api/v1/internal/cron/*. Cron routes are disabled when unset. */
+    CRON_SECRET: z.string().min(16).optional(),
+    /** Set automatically by Vercel ("1"). */
+    VERCEL: z.string().optional(),
 
     UPLOAD_DIR: z.string().default('uploads'),
     MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(50).default(10),

@@ -15,19 +15,19 @@ import {
   type TaskIssueInput,
   type UpdateTaskInput,
 } from '@innovexa/shared';
-import type { AuthUser } from '../../types/express';
-import { loadProjectFor, loadTaskFor, taskScope } from '../../utils/access';
-import { AppError } from '../../utils/AppError';
-import { escapeRegex, pageMeta } from '../../utils/http';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { assertOwnAttachments } from '../files/files.service';
-import { FileModel } from '../files/file.model';
-import { Milestone } from '../milestones/milestone.model';
-import { notify, notifyAdmins } from '../notifications/notification.service';
-import { Project } from '../projects/project.model';
-import { assertActivePartners, recalcProjectProgress } from '../projects/projects.service';
-import { TaskUpdate } from '../task-updates/taskUpdate.model';
-import { Task } from './task.model';
+import type { AuthUser } from '../../types/express.js';
+import { loadProjectFor, loadTaskFor, taskScope } from '../../utils/access.js';
+import { AppError } from '../../utils/AppError.js';
+import { escapeRegex, pageMeta } from '../../utils/http.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { assertOwnAttachments } from '../files/files.service.js';
+import { FileModel } from '../files/file.model.js';
+import { Milestone } from '../milestones/milestone.model.js';
+import { notify, notifyAdmins } from '../notifications/notification.service.js';
+import { Project } from '../projects/project.model.js';
+import { assertActivePartners, recalcProjectProgress } from '../projects/projects.service.js';
+import { TaskUpdate } from '../task-updates/taskUpdate.model.js';
+import { Task } from './task.model.js';
 
 const DONE: string[] = [TaskStatus.APPROVED, TaskStatus.COMPLETED];
 /** Statuses in which an assigned partner may report progress or submit. */

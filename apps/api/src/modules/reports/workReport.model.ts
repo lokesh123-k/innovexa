@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { WORK_REPORT_TYPES, WorkReportType } from '@innovexa/shared';
-import { ref, refs } from '../../utils/schemaTypes';
+import { ref, refs } from '../../utils/schemaTypes.js';
 
 const workReportSchema = new Schema(
   {

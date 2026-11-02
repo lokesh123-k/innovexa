@@ -10,15 +10,15 @@ import {
   type CreateWorkReportInput,
   type ListWorkReportsQuery,
 } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { AppError } from '../../utils/AppError';
-import { pageMeta, ok } from '../../utils/http';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { Task } from '../tasks/task.model';
-import { TaskUpdate } from '../task-updates/taskUpdate.model';
-import { WorkReport } from './workReport.model';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { AppError } from '../../utils/AppError.js';
+import { pageMeta, ok } from '../../utils/http.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { Task } from '../tasks/task.model.js';
+import { TaskUpdate } from '../task-updates/taskUpdate.model.js';
+import { WorkReport } from './workReport.model.js';
 
 /** Normalise to UTC midnight so "one report per day" is enforced by the unique index. */
 const dayStart = (d: Date) =>

@@ -5,7 +5,7 @@ import {
   InstallmentKind,
   InstallmentStatus,
 } from '@innovexa/shared';
-import { money, ref } from '../../utils/schemaTypes';
+import { money, ref } from '../../utils/schemaTypes.js';
 
 /** An internal payment schedule row. This is not bank/card EMI financing. */
 const installmentSchema = new Schema(

@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { CLIENT_STATUSES, ClientStatus } from '@innovexa/shared';
-import { ref } from '../../utils/schemaTypes';
+import { ref } from '../../utils/schemaTypes.js';
 
 const clientSchema = new Schema(
   {

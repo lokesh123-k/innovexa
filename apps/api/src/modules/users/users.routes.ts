@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { Role } from '@innovexa/shared';
-import { authenticate } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { validate } from '../../middleware/validate';
-import * as ctrl from './users.controller';
+import { authenticate } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { validate } from '../../middleware/validate.js';
+import * as ctrl from './users.controller.js';
 import {
   inviteUserSchema,
   listUsersQuerySchema,
@@ -11,7 +11,7 @@ import {
   updateOwnProfileSchema,
   updateUserSchema,
   userIdParamsSchema,
-} from './users.validation';
+} from './users.validation.js';
 
 export const usersRouter = Router();
 

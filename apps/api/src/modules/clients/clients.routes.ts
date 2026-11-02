@@ -9,12 +9,12 @@ import {
   updateClientSchema,
   type ClientStatus,
 } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import { toUserDTO } from '../users/user.serializer';
-import * as svc from './clients.service';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import { toUserDTO } from '../users/user.serializer.js';
+import * as svc from './clients.service.js';
 
 const id = (req: Parameters<typeof valid>[0]) => valid<{ id: string }>(req, 'params').id;
 

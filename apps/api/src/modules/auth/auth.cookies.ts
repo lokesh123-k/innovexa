@@ -1,5 +1,5 @@
 import type { CookieOptions, Response } from 'express';
-import { env } from '../../config/env';
+import { env } from '../../config/env.js';
 
 export const ACCESS_COOKIE = 'ix_at';
 export const REFRESH_COOKIE = 'ix_rt';

@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { FILE_SCOPES, FILE_VISIBILITIES, FileVisibility } from '@innovexa/shared';
-import { ref } from '../../utils/schemaTypes';
+import { ref } from '../../utils/schemaTypes.js';
 
 const fileSchema = new Schema(
   {

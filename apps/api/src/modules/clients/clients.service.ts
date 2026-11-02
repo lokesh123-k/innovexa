@@ -8,20 +8,20 @@ import {
   type ListClientsQuery,
   type UpdateClientInput,
 } from '@innovexa/shared';
-import type { AuthUser } from '../../types/express';
-import { AppError } from '../../utils/AppError';
-import { escapeRegex, pageMeta } from '../../utils/http';
-import { formatCode, nextSequence } from '../../utils/sequence';
-import { recordAudit } from '../audit-logs/auditLog.service';
-import { revokeAllSessions } from '../auth/auth.service';
-import { billingTotals, listInvoices, upcomingInstallments } from '../invoices/billing.service';
-import { Invoice } from '../invoices/invoice.model';
-import { Project } from '../projects/project.model';
-import { listProjects } from '../projects/projects.service';
-import { User } from '../users/user.model';
-import { toUserDTO } from '../users/user.serializer';
-import { inviteUser } from '../users/users.service';
-import { Client } from './client.model';
+import type { AuthUser } from '../../types/express.js';
+import { AppError } from '../../utils/AppError.js';
+import { escapeRegex, pageMeta } from '../../utils/http.js';
+import { formatCode, nextSequence } from '../../utils/sequence.js';
+import { recordAudit } from '../audit-logs/auditLog.service.js';
+import { revokeAllSessions } from '../auth/auth.service.js';
+import { billingTotals, listInvoices, upcomingInstallments } from '../invoices/billing.service.js';
+import { Invoice } from '../invoices/invoice.model.js';
+import { Project } from '../projects/project.model.js';
+import { listProjects } from '../projects/projects.service.js';
+import { User } from '../users/user.model.js';
+import { toUserDTO } from '../users/user.serializer.js';
+import { inviteUser } from '../users/users.service.js';
+import { Client } from './client.model.js';
 
 async function loadClient(id: string) {
   const client = await Client.findOne({ _id: id, archivedAt: null });

@@ -10,25 +10,25 @@ import {
   UserStatus,
   idParamSchema,
 } from '@innovexa/shared';
-import { env } from '../../config/env';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
-import { valid, validate } from '../../middleware/validate';
-import { AppError } from '../../utils/AppError';
-import { ok } from '../../utils/http';
-import { AuditLog } from '../audit-logs/auditLog.model';
-import { Client } from '../clients/client.model';
-import { Message } from '../messages/message.model';
-import { Milestone } from '../milestones/milestone.model';
-import { billingTotals, gatewayConfig, upcomingInstallments } from '../invoices/billing.service';
-import { Payment } from '../payments/payment.model';
-import { Project } from '../projects/project.model';
-import { Task } from '../tasks/task.model';
-import { TaskUpdate } from '../task-updates/taskUpdate.model';
-import { User } from '../users/user.model';
-import { toUserDTO } from '../users/user.serializer';
-import { WorkReport } from './workReport.model';
-import { MailDeliveryError, fromAddress, sendMail, verifyMailer } from '../../utils/mailer';
+import { env } from '../../config/env.js';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { authorize } from '../../middleware/authorize.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { AppError } from '../../utils/AppError.js';
+import { ok } from '../../utils/http.js';
+import { AuditLog } from '../audit-logs/auditLog.model.js';
+import { Client } from '../clients/client.model.js';
+import { Message } from '../messages/message.model.js';
+import { Milestone } from '../milestones/milestone.model.js';
+import { billingTotals, gatewayConfig, upcomingInstallments } from '../invoices/billing.service.js';
+import { Payment } from '../payments/payment.model.js';
+import { Project } from '../projects/project.model.js';
+import { Task } from '../tasks/task.model.js';
+import { TaskUpdate } from '../task-updates/taskUpdate.model.js';
+import { User } from '../users/user.model.js';
+import { toUserDTO } from '../users/user.serializer.js';
+import { WorkReport } from './workReport.model.js';
+import { MailDeliveryError, fromAddress, sendMail, verifyMailer } from '../../utils/mailer.js';
 
 const DONE = [TaskStatus.APPROVED, TaskStatus.COMPLETED];
 const OPEN_PROJECT = [ProjectStatus.PENDING, ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD];

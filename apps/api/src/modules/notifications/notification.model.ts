@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { NOTIFICATION_TYPES } from '@innovexa/shared';
-import { ref } from '../../utils/schemaTypes';
+import { ref } from '../../utils/schemaTypes.js';
 
 const notificationSchema = new Schema(
   {

@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { INVOICE_STATUSES, InvoiceStatus, PAYMENT_TERMS, PaymentTerms } from '@innovexa/shared';
-import { money, ref } from '../../utils/schemaTypes';
+import { money, ref } from '../../utils/schemaTypes.js';
 
 /**
  * All amounts are integer minor units. `totalMinor`, `paidMinor` and

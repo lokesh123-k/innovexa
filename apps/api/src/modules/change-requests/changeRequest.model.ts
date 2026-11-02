@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { CHANGE_REQUEST_STATUSES, ChangeRequestStatus } from '@innovexa/shared';
-import { money, ref, refs } from '../../utils/schemaTypes';
+import { money, ref, refs } from '../../utils/schemaTypes.js';
 
 const changeRequestSchema = new Schema(
   {

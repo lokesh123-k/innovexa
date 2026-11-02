@@ -2,16 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import type { Types } from 'mongoose';
 import { FileScope, FileVisibility, Role } from '@innovexa/shared';
-import type { AuthUser } from '../../types/express';
-import { loadProjectFor } from '../../utils/access';
-import { AppError } from '../../utils/AppError';
-import { ChangeRequest } from '../change-requests/changeRequest.model';
-import { Conversation } from '../conversations/conversation.model';
-import { Project } from '../projects/project.model';
-import { WorkReport } from '../reports/workReport.model';
-import { Task } from '../tasks/task.model';
-import { FileModel } from './file.model';
-import { storage } from './storage';
+import type { AuthUser } from '../../types/express.js';
+import { loadProjectFor } from '../../utils/access.js';
+import { AppError } from '../../utils/AppError.js';
+import { ChangeRequest } from '../change-requests/changeRequest.model.js';
+import { Conversation } from '../conversations/conversation.model.js';
+import { Project } from '../projects/project.model.js';
+import { WorkReport } from '../reports/workReport.model.js';
+import { Task } from '../tasks/task.model.js';
+import { FileModel } from './file.model.js';
+import { storage } from './storage.js';
 
 /** Allowed upload types. SVG/HTML are excluded because they can carry scripts. */
 const ALLOWED: Record<string, string[]> = {
@@ -95,6 +95,8 @@ async function authorizeParent(user: AuthUser, kind: UploadScope, refId: string)
 }
 
 export async function uploadFile(user: AuthUser, input: UploadInput) {
+  // Fail fast (503) where no persistent storage exists, before any other work.
+  const store = storage();
   const ext = extname(input.file.originalname).toLowerCase();
   const allowedExts = ALLOWED[input.file.mimetype];
   if (!allowedExts || !allowedExts.includes(ext)) {
@@ -112,7 +114,6 @@ export async function uploadFile(user: AuthUser, input: UploadInput) {
         : FileVisibility.INTERNAL;
 
   const key = `${input.kind.toLowerCase()}/${new Date().getUTCFullYear()}/${randomUUID()}${ext}`;
-  const store = storage();
   await store.put(key, input.file.buffer);
   const doc = await FileModel.create({
     ownerId: user._id,

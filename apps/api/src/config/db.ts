@@ -1,20 +1,42 @@
 import mongoose from 'mongoose';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 // Unknown filter keys are dropped rather than matched. Operator injection is prevented upstream:
 // every request value is Zod-parsed into scalars before it reaches a query.
 mongoose.set('strictQuery', true);
 
 /**
+ * Serverless-safe connection: one Mongoose connection per warm function
+ * instance, shared by every request it serves. Concurrent cold-start requests
+ * await the same in-flight promise instead of opening extra connections.
+ */
+let pending: Promise<typeof mongoose> | undefined;
+
+export function ensureDatabase(uri: string): Promise<typeof mongoose> {
+  if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose);
+  // autoIndex stays on so a fresh production database gets its unique indexes (idempotent).
+  pending ??= connectDatabase(uri, 2, { maxPoolSize: 5 }).catch((err: unknown) => {
+    pending = undefined; // let the next request retry
+    throw err;
+  });
+  return pending;
+}
+
+/**
  * Connects with retries so a brief network drop (or an Atlas IP allowlist
  * change taking effect) doesn't leave the API dead until a manual restart.
  */
-export async function connectDatabase(uri: string, attempts = 6): Promise<typeof mongoose> {
+export async function connectDatabase(
+  uri: string,
+  attempts = 6,
+  options: { maxPoolSize?: number; autoIndex?: boolean } = {},
+): Promise<typeof mongoose> {
   for (let attempt = 1; ; attempt++) {
     try {
       const conn = await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 10000,
-        autoIndex: true,
+        autoIndex: options.autoIndex ?? true,
+        ...(options.maxPoolSize && { maxPoolSize: options.maxPoolSize }),
       });
       logger.info({ db: conn.connection.name }, 'MongoDB connected');
       return conn;

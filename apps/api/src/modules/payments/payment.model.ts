@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { PAYMENT_METHODS, PAYMENT_STATUSES, PaymentStatus } from '@innovexa/shared';
-import { money, ref } from '../../utils/schemaTypes';
+import { money, ref } from '../../utils/schemaTypes.js';
 
 /**
  * Payment attempt or recorded payment. Card numbers, CVV, UPI PIN or bank

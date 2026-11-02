@@ -70,3 +70,23 @@ With `EMAIL_TRANSPORT=log` (the default), invitation, reset and verification lin
 - Every protected request re-checks the user in the database, so deactivation and password resets take effect immediately.
 - The API refuses to boot in production with an insecure config (non-secure cookies, weak JWT secret, http origins, non-SMTP email).
 - Never commit `.env`. `.env.example` contains placeholders only.
+
+## Deploying the API to Vercel
+
+The API deploys as a separate Vercel project using Vercel's zero-config Express support. `apps/api/index.ts` default-exports the same `createApp()` used locally, so every `/api/v1` route is shared and nothing is duplicated. Local development (`npm run dev`, port 4000) still runs `src/server.ts` with Socket.IO and in-process jobs.
+
+| Setting | Value |
+|---|---|
+| Root Directory | `apps/api` |
+| Framework Preset | Express (set by `apps/api/vercel.json`) |
+| Install Command | from `vercel.json`: `cd ../.. && MONGOMS_DISABLE_POSTINSTALL=1 npm ci --include=dev` |
+| Build Command | from `vercel.json`: `cd ../.. && npm run build -w @innovexa/shared && npm run typecheck -w @innovexa/api` |
+| Output Directory | leave empty (not used by Express functions) |
+| Include files outside root directory | enabled (needed for `packages/shared`) |
+
+**Serverless differences:**
+- **MongoDB:** one lazily opened connection per warm instance.
+- **Socket.IO:** not available, so the app relies on its periodic refresh.
+- **Reminders:** run through Vercel Cron, calling `/api/v1/internal/cron/reminders` with `CRON_SECRET`.
+- **File uploads:** return 503 until an object-storage provider is added.
+- **Background emails:** use `waitUntil`, so they finish after the response.

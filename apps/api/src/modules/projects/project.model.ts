@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { PRIORITIES, PROJECT_STATUSES, Priority, ProjectStatus } from '@innovexa/shared';
-import { money, ref, refs } from '../../utils/schemaTypes';
+import { money, ref, refs } from '../../utils/schemaTypes.js';
 
 const progressSnapshotSchema = new Schema(
   {

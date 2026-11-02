@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@innovexa/shared": "0.1.0",
+    "@vercel/functions": "3.6.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

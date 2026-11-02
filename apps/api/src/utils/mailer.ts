@@ -1,6 +1,7 @@
+import { waitUntil } from '@vercel/functions';
 import nodemailer, { type Transporter } from 'nodemailer';
-import { env } from '../config/env';
-import { logger } from './logger';
+import { env } from '../config/env.js';
+import { logger } from './logger.js';
 
 export interface MailMessage {
   to: string;
@@ -205,7 +206,9 @@ export async function verifyMailer(): Promise<{
  * Used for notifications where the business action has already succeeded.
  */
 export function sendMailSafe(message: MailMessage): void {
-  sendMail(message).catch(() => undefined); // already logged (without secrets) by sendMail
+  const delivery = sendMail(message).catch(() => undefined); // already logged (without secrets) by sendMail
+  // On Vercel, keep the function alive until the email is handed off (no-op elsewhere).
+  waitUntil(delivery);
 }
 
 const escapeHtml = (s: string) =>

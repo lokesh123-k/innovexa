@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { idParamSchema, paginationQuerySchema } from '@innovexa/shared';
-import { authenticate, currentUser } from '../../middleware/authenticate';
-import { valid, validate } from '../../middleware/validate';
-import { ok } from '../../utils/http';
-import { listNotifications, markRead } from './notification.service';
+import { authenticate, currentUser } from '../../middleware/authenticate.js';
+import { valid, validate } from '../../middleware/validate.js';
+import { ok } from '../../utils/http.js';
+import { listNotifications, markRead } from './notification.service.js';
 
 const listQuery = paginationQuerySchema.extend({
   unreadOnly: z
