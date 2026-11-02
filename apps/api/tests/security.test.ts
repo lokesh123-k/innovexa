@@ -107,6 +107,56 @@ describe('serverless (Vercel) behaviour', () => {
     }
   });
 
+  it('issues SameSite=None; Secure cookies when the web app is on another site', async () => {
+    const { resetEnvCache } = await import('../src/config/env');
+    process.env.COOKIE_SAMESITE = 'none';
+    process.env.COOKIE_SECURE = 'true';
+    resetEnvCache();
+    try {
+      const user = await createUser(Role.PARTNER);
+      const res = await request(createApp())
+        .post(`${API}/auth/login`)
+        .send({ email: user.email, password: PASSWORD });
+      expect(res.status).toBe(200);
+      const cookies = [res.headers['set-cookie'] ?? []].flat();
+      expect(cookies).toHaveLength(2);
+      for (const c of cookies) {
+        expect(c).toMatch(/SameSite=None/i);
+        expect(c).toMatch(/; Secure/i);
+        expect(c).toMatch(/HttpOnly/i);
+      }
+    } finally {
+      delete process.env.COOKIE_SAMESITE;
+      delete process.env.COOKIE_SECURE;
+      resetEnvCache();
+    }
+  });
+
+  it('rejects SameSite=None without Secure', async () => {
+    const { env, resetEnvCache } = await import('../src/config/env');
+    process.env.COOKIE_SAMESITE = 'none';
+    resetEnvCache();
+    try {
+      expect(() => env()).toThrow(/COOKIE_SAMESITE/);
+    } finally {
+      delete process.env.COOKIE_SAMESITE;
+      resetEnvCache();
+    }
+  });
+
+  it('answers health even when per-request preparation fails', async () => {
+    const app = createApp({ prepare: () => Promise.reject(new Error('db down')) });
+    const health = await request(app).get(`${API}/health`);
+    expect(health.headers['content-type']).toMatch(/json/);
+    expect(health.body.data.status).toBeDefined();
+    const other = await request(app).get(`${API}/service-categories`);
+    expect(other.status).toBe(500);
+    expect(other.body.success).toBe(false);
+    const root = await request(app).get('/');
+    expect(root.status).toBe(200);
+    expect(root.body.data.health).toBe('/api/v1/health');
+  });
+
   it('protects the cron route with CRON_SECRET', async () => {
     const { resetEnvCache } = await import('../src/config/env');
     const app = createApp();

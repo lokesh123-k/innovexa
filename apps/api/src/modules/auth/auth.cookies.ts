@@ -11,7 +11,7 @@ function base(): CookieOptions {
   return {
     httpOnly: true,
     secure: cfg.COOKIE_SECURE,
-    sameSite: 'lax',
+    sameSite: cfg.COOKIE_SAMESITE,
     domain: cfg.COOKIE_DOMAIN || undefined,
   };
 }

@@ -1,6 +1,9 @@
 import pino from 'pino';
 
 const nodeEnv = process.env.NODE_ENV ?? 'development';
+// pino-pretty is a dev dependency: only use it for local development, never in a deployed bundle
+// (on Vercel NODE_ENV may be unset, and loading a missing transport crashes the function).
+const pretty = nodeEnv === 'development' && !process.env.VERCEL;
 
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (nodeEnv === 'test' ? 'silent' : 'info'),
@@ -15,7 +18,5 @@ export const logger = pino({
     ],
     censor: '[redacted]',
   },
-  ...(nodeEnv === 'development'
-    ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
-    : {}),
+  ...(pretty ? { transport: { target: 'pino-pretty', options: { colorize: true } } } : {}),
 });

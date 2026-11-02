@@ -31,6 +31,8 @@ const envSchema = z
 
     COOKIE_DOMAIN: z.string().optional(),
     COOKIE_SECURE: bool(false),
+    /** `none` when the web app and API are on different sites (e.g. two *.vercel.app domains). */
+    COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 
     APP_URL: z.url().default('http://localhost:5173'),
     CORS_ORIGINS: z
@@ -95,6 +97,13 @@ const envSchema = z
           message: 'SENDER_PASSWORD is required for smtp transport',
         });
       }
+    }
+    if (env.COOKIE_SAMESITE === 'none' && !env.COOKIE_SECURE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['COOKIE_SAMESITE'],
+        message: 'COOKIE_SAMESITE=none requires COOKIE_SECURE=true (browsers reject it otherwise)',
+      });
     }
     if (env.NODE_ENV === 'production') {
       if (!env.COOKIE_SECURE) {

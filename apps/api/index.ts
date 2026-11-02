@@ -11,12 +11,13 @@
  *   functions cannot hold WebSockets or run timers between requests). Reminders
  *   run through the cron route instead; see README "Deploying the API to Vercel".
  */
-import type { Express } from 'express';
+import express, { type Express } from 'express';
 import { createApp } from './src/app.js';
 import { env } from './src/config/env.js';
 import { ensureDatabase } from './src/config/db.js';
 import './src/models.js';
 import { ensureDefaultCategories } from './src/modules/service-categories/serviceCategories.routes.js';
+import { logger } from './src/utils/logger.js';
 
 let seeded: Promise<void> | undefined;
 
@@ -30,6 +31,35 @@ async function ready(): Promise<void> {
   await seeded;
 }
 
-const app: Express = createApp({ prepare: ready });
+/**
+ * An invalid configuration must not crash the module: Vercel would answer every
+ * request with a bare FUNCTION_INVOCATION_FAILED. Instead, log which variables are
+ * wrong (names and rules only, never values) and answer requests with a JSON 503.
+ * Environment changes on Vercel need a redeploy, so evaluating once per instance is enough.
+ */
+function build(): Express {
+  try {
+    return createApp({ prepare: ready });
+  } catch (err) {
+    logger.fatal(
+      { err },
+      'API not started: fix the environment variables listed above and redeploy',
+    );
+    const fallback = express();
+    fallback.disable('x-powered-by');
+    fallback.use((_req, res) => {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: 'SERVICE_MISCONFIGURED',
+          message: 'The API is not configured correctly. See the server logs.',
+        },
+      });
+    });
+    return fallback;
+  }
+}
+
+const app: Express = build();
 
 export default app;

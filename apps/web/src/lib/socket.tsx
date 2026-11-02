@@ -6,6 +6,15 @@ import { useAuth } from '@/features/auth/AuthProvider';
 
 const SocketContext = createContext<Socket | null>(null);
 
+const apiUrl: string = import.meta.env.VITE_API_URL || '/api/v1';
+/** The socket lives on the API server: its origin when VITE_API_URL is absolute, else this page's. */
+const socketOrigin = /^https?:\/\//.test(apiUrl) ? new URL(apiUrl).origin : undefined;
+/**
+ * Serverless API hosting (e.g. Vercel) has no Socket.IO server: set VITE_REALTIME=false there.
+ * Screens then stay current through their periodic refetch instead of push events.
+ */
+const realtimeEnabled = import.meta.env.VITE_REALTIME !== 'false';
+
 /**
  * One Socket.IO connection per signed-in session. Authenticated by the same
  * httpOnly cookie as the API (same origin via the dev proxy). Server events
@@ -18,8 +27,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const userId = user?.id;
 
   useEffect(() => {
-    if (!userId) return;
-    const s = io({
+    if (!userId || !realtimeEnabled) return;
+    const s = io(socketOrigin, {
       path: '/socket.io',
       withCredentials: true,
       transports: ['websocket', 'polling'],

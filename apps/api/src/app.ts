@@ -65,6 +65,22 @@ export function createApp(options: AppOptions = {}): Express {
     }),
   );
   app.use(originGuard(cfg.CORS_ORIGINS));
+
+  // Health precedes `prepare` so it always answers (JSON) and reports a database failure instead of failing with it.
+  app.get('/api/v1/health', async (_req, res) => {
+    if (options.prepare)
+      await options
+        .prepare()
+        .catch((err: unknown) => logger.error({ err }, 'Health check: database unavailable'));
+    const dbUp = mongoose.connection.readyState === 1;
+    res
+      .status(dbUp ? 200 : 503)
+      .json({ success: dbUp, data: { status: dbUp ? 'ok' : 'degraded', db: dbUp } });
+  });
+  app.get('/', (_req, res) => {
+    res.json({ success: true, data: { service: 'innovexa-api', health: '/api/v1/health' } });
+  });
+
   if (options.prepare) {
     const prepare = options.prepare;
     app.use((_req, _res, next) => {
@@ -94,13 +110,6 @@ export function createApp(options: AppOptions = {}): Express {
       }),
     );
   app.use('/api', limiters.global);
-
-  app.get('/api/v1/health', (_req, res) => {
-    const dbUp = mongoose.connection.readyState === 1;
-    res
-      .status(dbUp ? 200 : 503)
-      .json({ success: dbUp, data: { status: dbUp ? 'ok' : 'degraded', db: dbUp } });
-  });
 
   app.use('/api/v1/auth', buildAuthRouter(limiters.auth, limiters.login));
   app.use('/api/v1/users', usersRouter);
