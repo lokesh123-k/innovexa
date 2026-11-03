@@ -11,6 +11,7 @@
  *   functions cannot hold WebSockets or run timers between requests). Reminders
  *   run through the cron route instead; see README "Deploying the API to Vercel".
  */
+import cors from 'cors';
 import express, { type Express } from 'express';
 import { createApp } from './src/app.js';
 import { ConfigError, env } from './src/config/env.js';
@@ -56,6 +57,18 @@ function build(): Express {
     }
     const fallback = express();
     fallback.disable('x-powered-by');
+    // Let the web app read this error instead of reporting a CORS failure. The configuration is
+    // invalid, so trust only exact CORS_ORIGINS entries read directly (no preview rule).
+    const origins = (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((o) => o.trim().replace(/\/+$/, ''))
+      .filter((o) => o.startsWith('https://') || o.startsWith('http://localhost'));
+    fallback.use(
+      cors({
+        origin: (origin, cb) => cb(null, !!origin && origins.includes(origin)),
+        credentials: true,
+      }),
+    );
     fallback.use((_req, res) => {
       res.status(503).json({
         success: false,

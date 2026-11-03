@@ -105,6 +105,20 @@ describe('HTTP hardening', () => {
     }
   });
 
+  it('keeps CORS headers on error responses so the web app can read them', async () => {
+    const origin = 'http://localhost:5173';
+    const responses = [
+      await request(app).get(`${API}/auth/me`).set('Origin', origin), // 401
+      await request(app).get(`${API}/nope`).set('Origin', origin), // 404
+      await request(app).post(`${API}/auth/login`).set('Origin', origin).send({ email: 'x' }), // 400
+    ];
+    expect(responses.map((r) => r.status)).toEqual([401, 404, 400]);
+    for (const r of responses) {
+      expect(r.headers['access-control-allow-origin']).toBe(origin);
+      expect(r.headers['access-control-allow-credentials']).toBe('true');
+    }
+  });
+
   it('rejects a malformed CORS_VERCEL_PREVIEWS value', async () => {
     const { env, resetEnvCache } = await import('../src/config/env');
     process.env.CORS_VERCEL_PREVIEWS = '.*:evil';
