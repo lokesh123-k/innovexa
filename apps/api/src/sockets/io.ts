@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { Role } from '@innovexa/shared';
 import { env } from '../config/env.js';
 import { resolveUserFromToken } from '../middleware/authenticate.js';
+import { buildOriginCheck } from '../middleware/security.js';
 import { ACCESS_COOKIE } from '../modules/auth/auth.cookies.js';
 import { logger } from '../utils/logger.js';
 
@@ -25,15 +26,19 @@ function cookieValue(header: string | undefined, name: string): string | undefin
  */
 export function initSockets(server: HttpServer): Server {
   const cfg = env();
+  const isAllowedOrigin = buildOriginCheck(cfg.CORS_ORIGINS, cfg.CORS_VERCEL_PREVIEWS);
   io = new Server(server, {
-    cors: { origin: cfg.CORS_ORIGINS, credentials: true },
+    cors: {
+      origin: (origin, cb) => cb(null, !origin || isAllowedOrigin(origin)),
+      credentials: true,
+    },
     serveClient: false,
   });
 
   io.use(async (socket, next) => {
     try {
       const origin = socket.handshake.headers.origin;
-      if (origin && !cfg.CORS_ORIGINS.includes(origin)) throw new Error('Origin not allowed');
+      if (origin && !isAllowedOrigin(origin)) throw new Error('Origin not allowed');
       const token = cookieValue(socket.handshake.headers.cookie, ACCESS_COOKIE);
       if (!token) throw new Error('Unauthenticated');
       socket.data.user = await resolveUserFromToken(token);

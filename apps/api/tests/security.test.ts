@@ -27,6 +27,96 @@ describe('HTTP hardening', () => {
     expect(bad.headers['access-control-allow-origin']).toBeUndefined();
   });
 
+  it('answers preflight with exact origin, credentials, methods and headers', async () => {
+    const res = await request(app)
+      .options(`${API}/auth/me`)
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'GET')
+      .set('Access-Control-Request-Headers', 'content-type,authorization');
+    expect(res.status).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(res.headers['access-control-allow-credentials']).toBe('true');
+    expect(res.headers['access-control-allow-methods']).toBe('GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    expect(res.headers['access-control-allow-headers']).toBe('Content-Type,Authorization');
+  });
+
+  it("allows only this Vercel project's previews when CORS_VERCEL_PREVIEWS is set", async () => {
+    const { resetEnvCache } = await import('../src/config/env');
+    const team = 'lokeshs-projects-3d39322d';
+    const preview = `https://innovexa-x7gv-2jgeevg8i-${team}.vercel.app`;
+    const branch = `https://innovexa-x7gv-git-feature-login-${team}.vercel.app`;
+    const preflight = (a: ReturnType<typeof createApp>, origin: string) =>
+      request(a)
+        .options(`${API}/auth/login`)
+        .set('Origin', origin)
+        .set('Access-Control-Request-Method', 'POST');
+
+    // Off by default: previews are rejected.
+    expect((await preflight(app, preview)).headers['access-control-allow-origin']).toBeUndefined();
+
+    process.env.CORS_VERCEL_PREVIEWS = `innovexa-x7gv:${team}`;
+    resetEnvCache();
+    try {
+      const withPreviews = createApp();
+      for (const ok of [preview, branch, 'http://localhost:5173']) {
+        const res = await preflight(withPreviews, ok);
+        expect(res.headers['access-control-allow-origin']).toBe(ok);
+        expect(res.headers['access-control-allow-credentials']).toBe('true');
+      }
+      for (const bad of [
+        'https://innovexa-x7gv.evil.vercel.app',
+        `https://innovexa-x7gv-2jgeevg8i-other-team-1234.vercel.app`,
+        `https://other-app-2jgeevg8i-${team}.vercel.app`,
+        `https://evil-innovexa-x7gv-2jgeevg8i-${team}.vercel.app`,
+        `http://innovexa-x7gv-2jgeevg8i-${team}.vercel.app`,
+        `https://innovexa-x7gv-2jgeevg8i-${team}.vercel.app.evil.com`,
+        `https://innovexa-x7gv-2jgeevg8i-${team}.vercel.app:8443`,
+        'https://anything.vercel.app',
+      ]) {
+        expect((await preflight(withPreviews, bad)).headers['access-control-allow-origin']).toBe(
+          undefined,
+        );
+        const post = await request(withPreviews)
+          .post(`${API}/auth/logout`)
+          .set('Origin', bad)
+          .send({});
+        expect(post.status).toBe(403);
+      }
+
+      // Authenticated round trip from a preview origin: login, then /auth/me with the cookies.
+      const user = await createUser(Role.CLIENT);
+      const login = await request(withPreviews)
+        .post(`${API}/auth/login`)
+        .set('Origin', preview)
+        .send({ email: user.email, password: PASSWORD });
+      expect(login.status).toBe(200);
+      expect(login.headers['access-control-allow-origin']).toBe(preview);
+      const cookies = [login.headers['set-cookie'] ?? []].flat().map((c) => c.split(';')[0]);
+      const me = await request(withPreviews)
+        .get(`${API}/auth/me`)
+        .set('Origin', preview)
+        .set('Cookie', cookies.join('; '));
+      expect(me.status).toBe(200);
+      expect(me.headers['access-control-allow-origin']).toBe(preview);
+      expect(me.body.data.user.email).toBe(user.email);
+    } finally {
+      delete process.env.CORS_VERCEL_PREVIEWS;
+      resetEnvCache();
+    }
+  });
+
+  it('rejects a malformed CORS_VERCEL_PREVIEWS value', async () => {
+    const { env, resetEnvCache } = await import('../src/config/env');
+    process.env.CORS_VERCEL_PREVIEWS = '.*:evil';
+    resetEnvCache();
+    try {
+      expect(() => env()).toThrow(/CORS_VERCEL_PREVIEWS/);
+    } finally {
+      delete process.env.CORS_VERCEL_PREVIEWS;
+      resetEnvCache();
+    }
+  });
+
   it('rejects unsafe requests from foreign origins (CSRF guard)', async () => {
     const res = await request(app)
       .post(`${API}/auth/logout`)

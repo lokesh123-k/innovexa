@@ -8,7 +8,7 @@ import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { cronRouter } from './jobs/cron.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import { buildRateLimiters, originGuard } from './middleware/security.js';
+import { buildOriginCheck, buildRateLimiters, originGuard } from './middleware/security.js';
 import { auditLogRouter } from './modules/audit-logs/auditLog.routes.js';
 import { changeRequestsRouter } from './modules/change-requests/changeRequests.routes.js';
 import { clientsRouter } from './modules/clients/clients.routes.js';
@@ -56,15 +56,19 @@ export function createApp(options: AppOptions = {}): Express {
   app.set('trust proxy', cfg.TRUST_PROXY);
 
   app.use(helmet());
+  const isAllowedOrigin = buildOriginCheck(cfg.CORS_ORIGINS, cfg.CORS_VERCEL_PREVIEWS);
+  // Runs before every route and error handler, and answers all OPTIONS preflights itself (204).
+  // With credentials the allowed origin is echoed back exactly; `*` is never sent.
   app.use(
     cors({
-      origin: (origin, cb) => cb(null, !origin || cfg.CORS_ORIGINS.includes(origin)),
+      origin: (origin, cb) => cb(null, !origin || isAllowedOrigin(origin)),
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
       maxAge: 600,
     }),
   );
-  app.use(originGuard(cfg.CORS_ORIGINS));
+  app.use(originGuard(isAllowedOrigin));
 
   // Health precedes `prepare` so it always answers (JSON) and reports a database failure instead of failing with it.
   app.get('/api/v1/health', async (_req, res) => {

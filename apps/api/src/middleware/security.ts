@@ -4,16 +4,36 @@ import { AppError } from '../utils/AppError.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+export type OriginCheck = (origin: string) => boolean;
+
+/**
+ * The single trusted-origin rule shared by CORS, the CSRF guard and Socket.IO:
+ * an exact CORS_ORIGINS entry, or (only when CORS_VERCEL_PREVIEWS is set) a
+ * preview deployment of that one Vercel project under that one team scope.
+ */
+export function buildOriginCheck(origins: readonly string[], vercelPreviews?: string): OriginCheck {
+  const exact = new Set(origins);
+  let preview: RegExp | undefined;
+  if (vercelPreviews) {
+    // Both parts are validated as [a-z0-9-] in env.ts, so they are safe inside a RegExp.
+    const [project, team] = vercelPreviews.split(':');
+    preview = new RegExp(
+      `^https://${project}-(?:[a-z0-9]{9}|git-[a-z0-9]+(?:-[a-z0-9]+)*)-${team}\\.vercel\\.app$`,
+    );
+  }
+  return (origin) => exact.has(origin) || (preview?.test(origin) ?? false);
+}
+
 /**
  * CSRF defence in depth: browsers always send `Origin` on cross-origin unsafe
  * requests, so reject any that do not come from an allowlisted origin.
  * Requests without `Origin` (server-to-server, payment webhooks) pass through.
  */
 export const originGuard =
-  (allowed: readonly string[]) =>
+  (isAllowed: OriginCheck) =>
   (req: Request, _res: Response, next: NextFunction): void => {
     const origin = req.headers.origin;
-    if (!SAFE_METHODS.has(req.method) && origin && !allowed.includes(origin)) {
+    if (!SAFE_METHODS.has(req.method) && origin && !isAllowed(origin)) {
       throw AppError.forbidden('Origin not allowed', 'ORIGIN_NOT_ALLOWED');
     }
     next();

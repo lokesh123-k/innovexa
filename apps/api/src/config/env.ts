@@ -51,6 +51,20 @@ const envSchema = z
           .map((o) => stripSlash(o.trim()))
           .filter(Boolean),
       ),
+    /**
+     * Opt-in: also allow this Vercel project's preview deployments, given as
+     * `<project-name>:<team-slug>` (e.g. `innovexa-web:acme-projects-1a2b3c4d`). Only URLs
+     * `https://<project>-<hash>-<team>.vercel.app` and `https://<project>-git-<branch>-<team>.vercel.app`
+     * match; other *.vercel.app sites never do.
+     */
+    CORS_VERCEL_PREVIEWS: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+        message: 'Use <project-name>:<team-slug>, lowercase letters, digits and hyphens only',
+      })
+      .optional(),
     RATE_LIMIT_ENABLED: bool(true),
     // General API budget per IP per 15 minutes; sign-in and token endpoints have stricter limits.
     RATE_LIMIT_PER_15_MIN: z.coerce.number().int().min(100).default(3000),
