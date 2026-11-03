@@ -258,6 +258,43 @@ describe('cross-site session (separate web and API domains)', () => {
     }
   });
 
+  it('COOKIE_SAMESITE=auto (default) picks None only for secure cross-origin sign-ins', async () => {
+    const { resetEnvCache } = await import('../src/config/env');
+    const sameSiteOf = (res: request.Response) =>
+      [res.headers['set-cookie'] ?? []].flat().map((c) => /SameSite=(\w+)/i.exec(c)?.[1]);
+    const user = await createUser(Role.ADMIN);
+    const creds = { email: user.email, password: PASSWORD };
+
+    // Insecure (local development): never None, whatever the origin.
+    const local = await request(createApp())
+      .post(`${API}/auth/login`)
+      .set('Origin', WEB)
+      .send(creds);
+    expect(sameSiteOf(local)).toEqual(['Lax', 'Lax']);
+
+    process.env.COOKIE_SECURE = 'true';
+    resetEnvCache();
+    try {
+      const xapp = createApp();
+      const cross = await request(xapp).post(`${API}/auth/login`).set('Origin', WEB).send(creds);
+      expect(sameSiteOf(cross)).toEqual(['None', 'None']);
+      const sameOrigin = await request(xapp).post(`${API}/auth/login`).send(creds);
+      expect(sameSiteOf(sameOrigin)).toEqual(['Lax', 'Lax']);
+      // A forced mode still wins.
+      process.env.COOKIE_SAMESITE = 'lax';
+      resetEnvCache();
+      const forced = await request(createApp())
+        .post(`${API}/auth/login`)
+        .set('Origin', WEB)
+        .send(creds);
+      expect(sameSiteOf(forced)).toEqual(['Lax', 'Lax']);
+    } finally {
+      delete process.env.COOKIE_SECURE;
+      delete process.env.COOKIE_SAMESITE;
+      resetEnvCache();
+    }
+  });
+
   it('keeps admin routes closed to other roles and to anonymous callers', async () => {
     const { agent } = await loginAs(Role.PARTNER);
     expect((await agent.get(`${API}/dashboard/admin`)).status).toBe(403);
@@ -281,7 +318,7 @@ describe('cross-site session (separate web and API domains)', () => {
         cookieSameSite: 'lax',
         crossOrigin: true,
       });
-      expect(message).toMatch(/COOKIE_SAMESITE=none/);
+      expect(message).toMatch(/COOKIE_SAMESITE=auto or none/);
       expect(JSON.stringify(warn.mock.calls)).not.toContain('super-secret-value');
     } finally {
       warn.mockRestore();

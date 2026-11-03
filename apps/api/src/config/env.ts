@@ -39,7 +39,14 @@ const envSchema = z
     COOKIE_DOMAIN: z.string().optional(),
     COOKIE_SECURE: bool(false),
     /** `none` when the web app and API are on different sites (e.g. two *.vercel.app domains). */
-    COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+    /**
+     * `auto` (default): SameSite=None for sign-ins from an allowed origin on another host
+     * (needs COOKIE_SECURE=true), otherwise Lax. `lax`/`strict`/`none` force one mode.
+     */
+    COOKIE_SAMESITE: z.preprocess(
+      (v) => (typeof v === 'string' ? v.trim().toLowerCase() : v),
+      z.enum(['auto', 'lax', 'strict', 'none']).default('auto'),
+    ),
 
     APP_URL: z.url().default('http://localhost:5173').transform(stripSlash),
     CORS_ORIGINS: z
