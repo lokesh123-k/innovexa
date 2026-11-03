@@ -37,6 +37,8 @@ Open **http://localhost:5173** and sign in. In dev and preview, Vite proxies `/a
 
 No Atlas yet? Point `MONGODB_URI` at `mongodb://127.0.0.1:27017/innovexa` and use `npm run dev:all`, which also starts a local development MongoDB with data kept in `.dev-db/`.
 
+Keep demo data out of real data: `npm run seed` and `npm run test:e2e` create demo records, so they refuse to run unless `MONGODB_URI` is a local database (e.g. `mongodb://127.0.0.1:27017/innovexa-dev` with `npm run dev:db`). Set `ALLOW_REMOTE_DB_WRITES=1` only for a separate, disposable database.
+
 `npm run seed` prints the demo accounts. Set `SEED_PASSWORD` in `.env` to choose their password; otherwise a random one is generated and printed once. Use `npm run seed -- --reset` to drop the database first. The seed refuses to run when `NODE_ENV=production`.
 
 With `EMAIL_TRANSPORT=log` (the default), invitation, reset and verification links are printed to the API console instead of being emailed.

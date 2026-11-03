@@ -15,10 +15,12 @@ import { Client, ServiceCategory, User } from '../src/models';
 import { hashPassword } from '../src/modules/auth/auth.service';
 import { slugify } from '../src/modules/service-categories/serviceCategory.model';
 import { formatCode, nextSequence } from '../src/utils/sequence';
+import { assertLocalDatabase } from './localDbGuard';
 
 async function main() {
   const cfg = env();
   if (cfg.NODE_ENV === 'production') throw new Error('Refusing to seed a production database');
+  assertLocalDatabase('the demo seed', cfg.MONGODB_URI);
 
   await connectDatabase(cfg.MONGODB_URI);
   if (process.argv.includes('--reset')) {
