@@ -5,7 +5,7 @@ import { ROLES, UserStatus, type Role } from '@innovexa/shared';
 import { env } from '../config/env.js';
 import { User } from '../modules/users/user.model.js';
 import { AppError } from '../utils/AppError.js';
-import { ACCESS_COOKIE } from '../modules/auth/auth.cookies.js';
+import { ACCESS_COOKIE, logAuthFailure } from '../modules/auth/auth.cookies.js';
 
 interface AccessClaims {
   sub: string;
@@ -94,8 +94,16 @@ export async function authenticate(
   next: NextFunction,
 ): Promise<void> {
   const token = extractAccessToken(req);
-  if (!token) throw AppError.unauthorized();
-  req.user = await resolveUserFromToken(token);
+  if (!token) {
+    logAuthFailure(req, 'NO_ACCESS_COOKIE');
+    throw AppError.unauthorized();
+  }
+  try {
+    req.user = await resolveUserFromToken(token);
+  } catch (err) {
+    if (err instanceof AppError) logAuthFailure(req, err.code);
+    throw err;
+  }
   next();
 }
 

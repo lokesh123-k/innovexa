@@ -12,7 +12,12 @@ import { ok } from '../../utils/http.js';
 import { recordAudit } from '../audit-logs/auditLog.service.js';
 import { User } from '../users/user.model.js';
 import { toUserDTO } from '../users/user.serializer.js';
-import { REFRESH_COOKIE, clearAuthCookies, setAuthCookies } from './auth.cookies.js';
+import {
+  REFRESH_COOKIE,
+  clearAuthCookies,
+  logAuthFailure,
+  setAuthCookies,
+} from './auth.cookies.js';
 import * as auth from './auth.service.js';
 
 const meta = (req: Request): auth.ClientMeta => ({ ip: req.ip, userAgent: req.get('user-agent') });
@@ -31,6 +36,7 @@ export async function refresh(req: Request, res: Response) {
     setAuthCookies(res, tokens);
     ok(res, { user: toUserDTO(user, user.role) });
   } catch (err) {
+    logAuthFailure(req, refreshCookie(req) ? 'REFRESH_REJECTED' : 'NO_REFRESH_COOKIE');
     clearAuthCookies(res);
     throw err;
   }

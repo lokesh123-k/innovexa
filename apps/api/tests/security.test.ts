@@ -1,8 +1,8 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app';
 import { Role } from '@innovexa/shared';
-import { API, PASSWORD, createUser, loginAs } from './helpers';
+import { API, PASSWORD, app, createUser, loginAs } from './helpers';
 
 describe('HTTP hardening', () => {
   const app = createApp();
@@ -188,6 +188,104 @@ describe('HTTP hardening', () => {
       ).status;
     }
     expect(last).toBe(429);
+  });
+});
+
+describe('cross-site session (separate web and API domains)', () => {
+  const WEB = 'http://localhost:5173';
+
+  it('runs login → me → admin dashboard → refresh → logout with SameSite=None cookies', async () => {
+    const { resetEnvCache } = await import('../src/config/env');
+    process.env.COOKIE_SAMESITE = 'none';
+    process.env.COOKIE_SECURE = 'true';
+    resetEnvCache();
+    try {
+      const xapp = createApp();
+      const jar = new Map<string, string>();
+      const store = (res: request.Response) => {
+        for (const c of [res.headers['set-cookie'] ?? []].flat()) {
+          expect(c).toMatch(/HttpOnly; Secure; SameSite=None/);
+          const pair = c.split(';')[0] ?? '';
+          const eq = pair.indexOf('=');
+          const name = pair.slice(0, eq);
+          const value = pair.slice(eq + 1);
+          if (value) jar.set(name, value);
+          else jar.delete(name);
+        }
+      };
+      // Path-aware like a browser: ix_rt (Path=/api/v1/auth) only goes to auth routes.
+      const cookieFor = (path: string) =>
+        [...jar]
+          .filter(([n]) => n !== 'ix_rt' || path.startsWith(`${API}/auth`))
+          .map(([n, v]) => `${n}=${v}`)
+          .join('; ');
+      const send = (method: 'get' | 'post', path: string) =>
+        request(xapp)[method](path).set('Origin', WEB).set('Cookie', cookieFor(path));
+
+      const admin = await createUser(Role.ADMIN);
+      const login = await request(xapp)
+        .post(`${API}/auth/login`)
+        .set('Origin', WEB)
+        .send({ email: admin.email, password: PASSWORD });
+      expect(login.status).toBe(200);
+      store(login);
+      expect([...jar.keys()].sort()).toEqual(['ix_at', 'ix_rt']);
+
+      expect((await send('get', `${API}/auth/me`)).status).toBe(200);
+      expect((await send('get', `${API}/dashboard/admin`)).status).toBe(200);
+      expect((await send('get', `${API}/notifications?limit=1`)).status).toBe(200);
+      expect((await send('get', `${API}/conversations/unread-count`)).status).toBe(200);
+
+      // Refresh works on the refresh cookie alone (no access token needed) and rotates both.
+      const before = jar.get('ix_rt');
+      jar.delete('ix_at');
+      const refreshed = await send('post', `${API}/auth/refresh`).send({});
+      expect(refreshed.status).toBe(200);
+      store(refreshed);
+      expect(jar.get('ix_rt')).not.toBe(before);
+      expect((await send('get', `${API}/dashboard/admin`)).status).toBe(200);
+
+      const out = await send('post', `${API}/auth/logout`).send({});
+      expect(out.status).toBe(200);
+      store(out);
+      expect(jar.size).toBe(0);
+      expect((await send('get', `${API}/auth/me`)).status).toBe(401);
+      expect((await send('post', `${API}/auth/refresh`).send({})).status).toBe(401);
+    } finally {
+      delete process.env.COOKIE_SAMESITE;
+      delete process.env.COOKIE_SECURE;
+      resetEnvCache();
+    }
+  });
+
+  it('keeps admin routes closed to other roles and to anonymous callers', async () => {
+    const { agent } = await loginAs(Role.PARTNER);
+    expect((await agent.get(`${API}/dashboard/admin`)).status).toBe(403);
+    expect((await request(app).get(`${API}/dashboard/admin`)).status).toBe(401);
+  });
+
+  it('logs why a session is missing, with cookie names only', async () => {
+    const { logger } = await import('../src/utils/logger');
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    try {
+      const res = await request(app)
+        .get(`${API}/auth/me`)
+        .set('Origin', WEB)
+        .set('Cookie', 'unrelated=super-secret-value');
+      expect(res.status).toBe(401);
+      expect(warn).toHaveBeenCalledTimes(1);
+      const [details, message] = warn.mock.calls[0] as unknown as [Record<string, unknown>, string];
+      expect(details).toMatchObject({
+        reason: 'NO_ACCESS_COOKIE',
+        cookieNames: ['unrelated'],
+        cookieSameSite: 'lax',
+        crossOrigin: true,
+      });
+      expect(message).toMatch(/COOKIE_SAMESITE=none/);
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('super-secret-value');
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
