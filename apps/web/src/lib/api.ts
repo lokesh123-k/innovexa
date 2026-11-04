@@ -116,6 +116,14 @@ export async function patchData<T>(url: string, body?: unknown): Promise<T> {
   return (await api.patch<ApiEnvelope<T>>(url, body)).data.data;
 }
 
+export async function putData<T>(url: string, body?: unknown): Promise<T> {
+  return (await api.put<ApiEnvelope<T>>(url, body)).data.data;
+}
+
+export async function deleteData<T>(url: string): Promise<T> {
+  return (await api.delete<ApiEnvelope<T>>(url)).data.data;
+}
+
 /** Uploads one file to a parent record (task, project, conversation…) and returns its id. */
 export async function uploadFile(
   file: File,

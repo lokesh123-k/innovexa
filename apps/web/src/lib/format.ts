@@ -14,6 +14,7 @@ const TONES: Record<string, Tone> = {
   ACCEPTED: 'green',
   SUCCEEDED: 'green',
   PENDING: 'neutral',
+  UNASSIGNED: 'amber',
   NOT_STARTED: 'neutral',
   DRAFT: 'neutral',
   ASSIGNED: 'blue',

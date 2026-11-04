@@ -221,6 +221,38 @@ export interface Invoice {
   payments?: Payment[];
 }
 
+/** A client's account partner (UNASSIGNED when none). */
+export interface ClientAssignment {
+  status: 'UNASSIGNED' | 'ASSIGNED';
+  partner: { id: string; name: string; email: string; status: string } | null;
+  assignedAt?: string;
+  updatedAt?: string;
+  assignedBy?: { id: string; name: string };
+}
+
+/** Active partner offered in the Assign Partner dialog. */
+export interface AssignablePartner {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  partnerType?: string;
+  category?: string;
+}
+
+/** Partner portal: a client assigned to the signed-in partner. */
+export interface AssignedClient {
+  id: string;
+  clientCode: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  status: string;
+  assignedAt?: string;
+  projects: { id: string; title: string; projectCode: string; status: string }[];
+}
+
 export interface ClientRecord {
   id: string;
   clientCode: string;
@@ -244,6 +276,7 @@ export interface ClientRecord {
   invoicedMinor?: number;
   outstandingMinor?: number;
   loginCount?: number;
+  assignment?: ClientAssignment;
 }
 
 export interface BillingTotals {

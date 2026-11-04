@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   ArrowLeft,
+  Building2,
   CheckCircle2,
   ClipboardList,
   Clock,
@@ -37,7 +38,14 @@ import { errorMessage, getData, postData, uploadFile } from '@/lib/api';
 import { minutesToHours } from '@/lib/format';
 import { fromDateInput, toDateInput } from '@/lib/hooks';
 import { cn, formatDate, formatDateTime, humanize } from '@/lib/utils';
-import type { Milestone, Project, Task, TaskUpdateEntry, WorkReport } from '@/types';
+import type {
+  AssignedClient,
+  Milestone,
+  Project,
+  Task,
+  TaskUpdateEntry,
+  WorkReport,
+} from '@/types';
 
 interface PartnerDash {
   activeProjects: number;
@@ -218,6 +226,77 @@ export function PartnerDashboard() {
           )}
         </Card>
       </div>
+    </>
+  );
+}
+
+/**
+ * Clients the admin assigned to this partner. Only the projects the partner is actually on are
+ * listed; other partners' clients and projects are never returned by the API.
+ */
+export function PartnerClientsPage() {
+  const clients = useQuery({
+    queryKey: ['clients', 'assigned'],
+    queryFn: async () => (await getData<AssignedClient[]>('/clients/assigned')).data,
+  });
+  return (
+    <>
+      <PageHeader title="My clients" description="Clients you are the assigned partner for." />
+      {clients.isLoading ? (
+        <Skeleton className="h-40" />
+      ) : clients.isError ? (
+        <FormAlert>{errorMessage(clients.error)}</FormAlert>
+      ) : clients.data!.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<Building2 />}
+            title="No clients assigned yet"
+            description="You'll see clients here once the admin assigns you to one."
+          />
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {clients.data!.map((c) => (
+            <Card key={c.id} className="h-full p-5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-semibold text-slate-900">{c.companyName}</div>
+                <StatusBadge status={c.status} />
+              </div>
+              <div className="mt-0.5 text-xs text-slate-500">
+                {c.clientCode}
+                {c.assignedAt && ` · assigned ${formatDate(c.assignedAt)}`}
+              </div>
+              <div className="mt-3 text-sm text-slate-700">{c.contactName}</div>
+              <a href={`mailto:${c.email}`} className="text-sm text-brand-700 hover:underline">
+                {c.email}
+              </a>
+              {c.phone && <div className="text-sm text-slate-600">{c.phone}</div>}
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  My projects for this client
+                </div>
+                {c.projects.length === 0 ? (
+                  <p className="mt-1 text-sm text-slate-500">None yet.</p>
+                ) : (
+                  <ul className="mt-1 space-y-1">
+                    {c.projects.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 text-sm">
+                        <Link
+                          to={`/partner/projects/${p.id}`}
+                          className="truncate text-slate-900 hover:text-brand-700"
+                        >
+                          {p.title}
+                        </Link>
+                        <StatusBadge status={p.status} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </>
   );
 }

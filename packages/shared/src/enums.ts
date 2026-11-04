@@ -23,6 +23,12 @@ export const ClientStatus = { ACTIVE: 'ACTIVE', INACTIVE: 'INACTIVE' } as const;
 export type ClientStatus = (typeof ClientStatus)[keyof typeof ClientStatus];
 export const CLIENT_STATUSES = values(ClientStatus);
 
+/** A client's account partner. UNASSIGNED is derived (no assignment stored). */
+export const ClientAssignmentStatus = { UNASSIGNED: 'UNASSIGNED', ASSIGNED: 'ASSIGNED' } as const;
+export type ClientAssignmentStatus =
+  (typeof ClientAssignmentStatus)[keyof typeof ClientAssignmentStatus];
+export const CLIENT_ASSIGNMENT_STATUSES = values(ClientAssignmentStatus);
+
 export const Priority = { LOW: 'LOW', MEDIUM: 'MEDIUM', HIGH: 'HIGH', URGENT: 'URGENT' } as const;
 export type Priority = (typeof Priority)[keyof typeof Priority];
 export const PRIORITIES = values(Priority);

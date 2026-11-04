@@ -69,6 +69,7 @@ const NAV: Record<Role, NavItem[]> = {
   [Role.PARTNER]: [
     { to: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/partner/projects', label: 'My Projects', icon: FolderKanban },
+    { to: '/partner/clients', label: 'My Clients', icon: Building2 },
     { to: '/partner/tasks', label: 'My Tasks', icon: ClipboardList },
     { to: '/partner/daily-updates', label: 'Daily Work Updates', icon: FileClock },
     { to: '/partner/time', label: 'Time Tracking', icon: Timer },

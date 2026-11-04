@@ -47,6 +47,7 @@ import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import {
   PartnerDashboard,
   PartnerProjectDetailPage,
+  PartnerClientsPage,
   PartnerProjectsPage,
   PartnerTaskDetailPage,
   PartnerTasksPage,
@@ -146,6 +147,7 @@ const router = createBrowserRouter([
   portal(Role.PARTNER, [
     { path: 'dashboard', element: <PartnerDashboard /> },
     { path: 'projects', element: <PartnerProjectsPage /> },
+    { path: 'clients', element: <PartnerClientsPage /> },
     { path: 'projects/:id', element: <PartnerProjectDetailPage /> },
     { path: 'tasks', element: <PartnerTasksPage /> },
     { path: 'tasks/:id', element: <PartnerTaskDetailPage /> },

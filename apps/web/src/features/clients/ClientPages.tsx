@@ -27,6 +27,7 @@ import { cn, formatDate, formatDateTime, humanize } from '@/lib/utils';
 import type {
   Attachment,
   BillingTotals,
+  ClientAssignment,
   Conversation,
   Invoice,
   Milestone,
@@ -49,6 +50,47 @@ interface ClientDash {
   billing: BillingTotals;
   upcomingInstallments: UpcomingInstallment[];
   recentWork: { id: string; title: string; approvedAt: string; project?: { title: string } }[];
+}
+
+/** Read-only: the Innovexa partner assigned to this client (changed only by an admin). */
+function AssignedPartnerCard() {
+  const assignment = useQuery({
+    queryKey: ['clients', 'me', 'assignment'],
+    queryFn: async () => (await getData<ClientAssignment>('/clients/me/assignment')).data,
+  });
+  const partner = assignment.data?.partner;
+  return (
+    <Card className="mt-6">
+      <CardHeader title="Your Innovexa partner" description="Your main point of contact" />
+      <div className="p-4 pt-0">
+        {assignment.isLoading ? (
+          <Skeleton className="h-12" />
+        ) : assignment.isError ? (
+          <FormAlert>{errorMessage(assignment.error)}</FormAlert>
+        ) : partner ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="font-medium text-slate-900">{partner.name}</div>
+              <a
+                href={`mailto:${partner.email}`}
+                className="text-sm text-brand-700 hover:underline"
+              >
+                {partner.email}
+              </a>
+            </div>
+            <StatusBadge status={assignment.data!.status} />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">
+              A partner hasn&apos;t been assigned to your account yet.
+            </p>
+            <StatusBadge status="UNASSIGNED" label="Not assigned" />
+          </div>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export function ClientDashboard() {
@@ -124,6 +166,7 @@ export function ClientDashboard() {
           icon={<MilestoneIcon />}
         />
       </div>
+      <AssignedPartnerCard />
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader

@@ -57,6 +57,9 @@ export type CreateClientInput = z.infer<typeof createClientSchema>;
 export const updateClientSchema = z.object(clientFields).partial().refine(nonEmpty, NO_CHANGES);
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
 export const setClientStatusSchema = z.object({ status: z.enum(CLIENT_STATUSES) });
+/** Assign or change a client's account partner (must be an active partner). */
+export const assignClientPartnerSchema = z.object({ partnerId: objectIdSchema });
+export type AssignClientPartnerInput = z.infer<typeof assignClientPartnerSchema>;
 export const inviteClientUserSchema = z.object({
   name,
   email: emailSchema,

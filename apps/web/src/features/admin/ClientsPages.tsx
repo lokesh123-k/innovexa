@@ -1,9 +1,23 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Building2, MailPlus, MessageSquare, Plus, Search } from 'lucide-react';
+import {
+  ArrowLeft,
+  Briefcase,
+  Building2,
+  MailPlus,
+  MessageSquare,
+  Plus,
+  Search,
+  UserPlus,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { CLIENT_STATUSES, ClientStatus } from '@innovexa/shared';
+import {
+  CLIENT_STATUSES,
+  ClientAssignmentStatus,
+  ClientStatus,
+  UserStatus,
+} from '@innovexa/shared';
 import { Button } from '@/components/ui/button';
 import {
   ConfirmDialog,
@@ -19,13 +33,15 @@ import {
 } from '@/components/ui/extra';
 import { Field, FormAlert, Input, Select } from '@/components/ui/form';
 import { Card, CardHeader, Dialog, EmptyState, PageHeader, Skeleton } from '@/components/ui/misc';
-import { errorMessage, getData, patchData, postData } from '@/lib/api';
+import { deleteData, errorMessage, getData, patchData, postData, putData } from '@/lib/api';
 import { InviteEmailStatus, announceInvite } from './InviteStatus';
 import { money } from '@/lib/format';
 import { useDebounced } from '@/lib/hooks';
 import { formatDate, formatDateTime, humanize } from '@/lib/utils';
 import type {
+  AssignablePartner,
   BillingTotals,
+  ClientAssignment,
   ClientRecord,
   Conversation,
   Invoice,
@@ -39,6 +55,7 @@ export function ClientsPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [assigning, setAssigning] = useState<ClientRecord | null>(null);
   const search = useDebounced(q);
   const params = { page, limit: 15, ...(search && { q: search }), ...(status && { status }) };
   const clients = useQuery({
@@ -107,7 +124,7 @@ export function ClientsPage() {
             }
           />
         ) : (
-          <TableShell minWidth={820}>
+          <TableShell minWidth={1100}>
             <thead>
               <tr>
                 <th className={th}>Client</th>
@@ -117,6 +134,9 @@ export function ClientsPage() {
                 <th className={`${th} text-right`}>Invoiced</th>
                 <th className={`${th} text-right`}>Outstanding</th>
                 <th className={th}>Status</th>
+                <th className={th}>Assigned partner</th>
+                <th className={th}>Assignment status</th>
+                <th className={`${th} text-right`}>Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -145,6 +165,29 @@ export function ClientsPage() {
                   <td className={td}>
                     <StatusBadge status={c.status} />
                   </td>
+                  <td className={td}>
+                    {c.assignment?.partner ? (
+                      <>
+                        {c.assignment.partner.name}
+                        <div className="text-xs text-slate-500">{c.assignment.partner.email}</div>
+                      </>
+                    ) : (
+                      <span className="text-slate-500">Not assigned</span>
+                    )}
+                  </td>
+                  <td className={td}>
+                    <AssignmentBadge assignment={c.assignment} />
+                  </td>
+                  <td className={`${td} text-right`}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setAssigning(c)}
+                      aria-label={`${c.assignment?.partner ? 'Change' : 'Assign'} partner for ${c.companyName}`}
+                    >
+                      <UserPlus /> {c.assignment?.partner ? 'Change' : 'Assign'}
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -153,6 +196,178 @@ export function ClientsPage() {
         <Pagination meta={clients.data?.meta} onPage={setPage} />
       </Card>
       {creating && <ClientFormDialog onClose={() => setCreating(false)} />}
+      {assigning && <AssignPartnerDialog client={assigning} onClose={() => setAssigning(null)} />}
+    </>
+  );
+}
+
+function AssignmentBadge({ assignment }: { assignment?: ClientAssignment }) {
+  const status = assignment?.status ?? ClientAssignmentStatus.UNASSIGNED;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <StatusBadge status={status} />
+      {/* A partner deactivated after assignment keeps the link, but the admin should know. */}
+      {assignment?.partner && assignment.partner.status !== UserStatus.ACTIVE && (
+        <StatusBadge status="INACTIVE" label="Partner inactive" />
+      )}
+    </span>
+  );
+}
+
+/**
+ * Assign, change or remove a client's account partner. Only active partners are offered,
+ * and the API rejects anything else. Project and task partners are not changed.
+ */
+function AssignPartnerDialog({ client, onClose }: { client: ClientRecord; onClose: () => void }) {
+  const qc = useQueryClient();
+  const current = client.assignment?.partner ?? null;
+  const [partnerId, setPartnerId] = useState(current?.id ?? '');
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const partners = useQuery({
+    queryKey: ['clients', 'assignable-partners'],
+    queryFn: async () => (await getData<AssignablePartner[]>('/clients/assignable-partners')).data,
+  });
+  const selected = partners.data?.find((p) => p.id === partnerId);
+  const done = (message: string) => {
+    toast.success(message);
+    void qc.invalidateQueries({ queryKey: ['clients'] });
+    onClose();
+  };
+  const assign = useMutation({
+    mutationFn: () => putData<ClientAssignment>(`/clients/${client.id}/assignment`, { partnerId }),
+    onSuccess: (a) =>
+      done(
+        current
+          ? `${client.companyName} is now assigned to ${a.partner?.name ?? 'the partner'}`
+          : `Partner assigned to ${client.companyName}`,
+      ),
+  });
+  const remove = useMutation({
+    mutationFn: () => deleteData<ClientAssignment>(`/clients/${client.id}/assignment`),
+    onSuccess: () => done(`Partner removed from ${client.companyName}`),
+  });
+  const unchanged = !!current && current.id === partnerId;
+
+  return (
+    <>
+      <Dialog
+        open={!confirmRemove}
+        onClose={onClose}
+        title={current ? 'Change assigned partner' : 'Assign partner'}
+        description="The partner becomes this client's point of contact. Existing project and task assignments are not changed."
+        className="sm:max-w-lg"
+      >
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            assign.mutate();
+          }}
+        >
+          {assign.isError && <FormAlert>{errorMessage(assign.error)}</FormAlert>}
+          {remove.isError && <FormAlert>{errorMessage(remove.error)}</FormAlert>}
+          <Field label="Client" htmlFor="ap-client">
+            <Input id="ap-client" value={client.companyName} readOnly disabled />
+          </Field>
+          {current && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Currently assigned
+              </div>
+              <div className="mt-1 font-medium text-slate-900">{current.name}</div>
+              <div className="text-slate-600">{current.email}</div>
+              {client.assignment?.assignedAt && (
+                <div className="mt-1 text-xs text-slate-500">
+                  Since {formatDate(client.assignment.assignedAt)}
+                  {client.assignment.assignedBy && ` · by ${client.assignment.assignedBy.name}`}
+                </div>
+              )}
+            </div>
+          )}
+          {partners.isLoading ? (
+            <Skeleton className="h-10" />
+          ) : partners.isError ? (
+            <FormAlert>{errorMessage(partners.error)}</FormAlert>
+          ) : partners.data!.length === 0 ? (
+            <EmptyState
+              icon={<Briefcase />}
+              title="No active partners"
+              description="Invite or activate a partner under Partners first."
+            />
+          ) : (
+            <Field label="Partner" htmlFor="ap-partner">
+              <Select
+                id="ap-partner"
+                required
+                value={partnerId}
+                onChange={(e) => setPartnerId(e.target.value)}
+              >
+                <option value="" disabled>
+                  Select an active partner…
+                </option>
+                {partners.data!.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.email})
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+          {selected && (
+            <DetailList
+              items={[
+                ['Partner name', selected.name],
+                ['Partner email', selected.email],
+                ['Partner status', <StatusBadge key="s" status={selected.status} />],
+                ...(selected.category
+                  ? ([['Category', selected.category]] as [string, string][])
+                  : []),
+              ]}
+            />
+          )}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {current && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-700"
+                  onClick={() => setConfirmRemove(true)}
+                >
+                  Remove assignment
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                loading={assign.isPending}
+                disabled={!selected || unchanged || remove.isPending}
+              >
+                Confirm assignment
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Dialog>
+      <ConfirmDialog
+        open={confirmRemove}
+        title="Remove assigned partner?"
+        description={
+          <>
+            {client.companyName} will no longer have <strong>{current?.name}</strong> as its
+            assigned partner. Their project and task assignments stay as they are.
+          </>
+        }
+        confirmLabel="Remove assignment"
+        danger
+        loading={remove.isPending}
+        onConfirm={() => remove.mutate()}
+        onClose={() => setConfirmRemove(false)}
+      />
     </>
   );
 }

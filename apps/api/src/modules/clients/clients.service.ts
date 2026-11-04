@@ -1,5 +1,7 @@
 import type { Request } from 'express';
+import type { Types } from 'mongoose';
 import {
+  ClientAssignmentStatus,
   ClientStatus,
   Role,
   UserStatus,
@@ -45,7 +47,7 @@ export async function listClients(q: ListClientsQuery) {
     Client.countDocuments(filter),
   ]);
   const ids = items.map((c) => c._id);
-  const [projects, balances, logins] = await Promise.all([
+  const [projects, balances, logins, people] = await Promise.all([
     Project.aggregate<{ _id: unknown; total: number; active: number }>([
       { $match: { clientId: { $in: ids }, archivedAt: null } },
       {
@@ -70,6 +72,7 @@ export async function listClients(q: ListClientsQuery) {
       { $match: { clientId: { $in: ids }, role: Role.CLIENT, deletedAt: null } },
       { $group: { _id: '$clientId', count: { $sum: 1 } } },
     ]),
+    peopleFor(items.map((c) => c.partnerAssignment as StoredAssignment)),
   ]);
   const key = (v: unknown) => String(v);
   const pMap = new Map(projects.map((p) => [key(p._id), p]));
@@ -83,6 +86,7 @@ export async function listClients(q: ListClientsQuery) {
       invoicedMinor: bMap.get(key(c._id))?.invoiced ?? 0,
       outstandingMinor: bMap.get(key(c._id))?.balance ?? 0,
       loginCount: lMap.get(key(c._id)) ?? 0,
+      assignment: assignmentView(c.partnerAssignment as StoredAssignment, people),
     })),
     meta: pageMeta(q.page, q.limit, total),
   };
@@ -182,21 +186,194 @@ export async function inviteClientLogin(req: Request, id: string, input: InviteC
 /** Admin 360° view: contact details, logins, projects, invoices and balances. */
 export async function getClientDetail(admin: AuthUser, id: string) {
   const client = await loadClient(id);
-  const [users, projects, invoices, totals, upcoming] = await Promise.all([
+  const [users, projects, invoices, totals, upcoming, assignment] = await Promise.all([
     User.find({ clientId: client._id, role: Role.CLIENT, deletedAt: null }).lean(),
     listProjects(admin, { page: 1, limit: 100, clientId: id }),
     listInvoices(admin, { page: 1, limit: 100, clientId: id }),
     billingTotals({ clientId: client._id }),
     upcomingInstallments({ clientId: client._id }, 90, 20),
+    getAssignment(id),
   ]);
   return {
     ...clientView(client.toObject()),
+    assignment,
     logins: users.map((u) => toUserDTO(u, Role.ADMIN)),
     projects: projects.items,
     invoices: invoices.items,
     totals,
     upcomingInstallments: upcoming,
   };
+}
+
+// ---- Account partner assignment -------------------------------------------------------------
+
+type StoredAssignment =
+  | {
+      partnerId: Types.ObjectId;
+      status: string;
+      assignedBy: Types.ObjectId;
+      assignedAt: Date;
+      updatedAt: Date;
+    }
+  | null
+  | undefined;
+type PartnerLite = { _id: unknown; name: string; email: string; status: string };
+
+const PARTNER_FIELDS = 'name email status';
+
+/** Loads the partners and assigning admins referenced by these assignments, in one query. */
+async function peopleFor(assignments: StoredAssignment[]) {
+  const ids = assignments.flatMap((a) => (a ? [a.partnerId, a.assignedBy] : []));
+  const people = ids.length
+    ? await User.find({ _id: { $in: ids } })
+        .select(PARTNER_FIELDS)
+        .lean<PartnerLite[]>()
+    : [];
+  return new Map(people.map((p) => [String(p._id), p]));
+}
+
+/** Public shape of an assignment. Partner details are limited to name, email and status. */
+export function assignmentView(
+  a: StoredAssignment,
+  people: Map<string, PartnerLite>,
+  { includeAdmin = true } = {},
+) {
+  if (!a?.partnerId) return { status: ClientAssignmentStatus.UNASSIGNED, partner: null };
+  const p = people.get(String(a.partnerId));
+  const by = people.get(String(a.assignedBy));
+  return {
+    status: a.status,
+    partner: p ? { id: String(p._id), name: p.name, email: p.email, status: p.status } : null,
+    assignedAt: a.assignedAt,
+    updatedAt: a.updatedAt,
+    ...(includeAdmin && by ? { assignedBy: { id: String(by._id), name: by.name } } : {}),
+  };
+}
+
+/** Active partners an admin may assign (inactive, invited and deleted partners are excluded). */
+export async function listAssignablePartners() {
+  const partners = await User.find({
+    role: Role.PARTNER,
+    status: UserStatus.ACTIVE,
+    deletedAt: null,
+  })
+    .select('name email status partnerProfile.partnerType partnerProfile.category')
+    .sort({ name: 1 })
+    .limit(500)
+    .lean();
+  return partners.map((p) => ({
+    id: String(p._id),
+    name: p.name,
+    email: p.email,
+    status: p.status,
+    partnerType: p.partnerProfile?.partnerType,
+    category: p.partnerProfile?.category,
+  }));
+}
+
+export async function getAssignment(id: string) {
+  const client = await loadClient(id);
+  const a = client.partnerAssignment as StoredAssignment;
+  return assignmentView(a, await peopleFor([a]));
+}
+
+/**
+ * Assigns or changes the client's partner. Only an existing, active partner is accepted.
+ * Projects and tasks are deliberately left untouched: their partners are managed per project.
+ */
+export async function assignPartner(req: Request, id: string, partnerId: string) {
+  const client = await loadClient(id);
+  const partner = await User.findOne({ _id: partnerId, role: Role.PARTNER, deletedAt: null })
+    .select(PARTNER_FIELDS)
+    .lean();
+  if (!partner) throw AppError.notFound('Partner');
+  if (partner.status !== UserStatus.ACTIVE) {
+    throw new AppError(400, 'PARTNER_INACTIVE', 'Only active partners can be assigned to a client');
+  }
+  const before = client.partnerAssignment as StoredAssignment;
+  if (before && String(before.partnerId) === partnerId) return getAssignment(id); // no change
+  const now = new Date();
+  client.set('partnerAssignment', {
+    partnerId: partner._id,
+    status: ClientAssignmentStatus.ASSIGNED,
+    assignedBy: req.user!._id,
+    assignedAt: now,
+    updatedAt: now,
+  });
+  await client.save();
+  await recordAudit({
+    req,
+    action: before ? 'client.partner_changed' : 'client.partner_assigned',
+    entity: 'Client',
+    entityId: client._id,
+    before: before ? { partnerId: before.partnerId } : null,
+    after: { partnerId: partner._id },
+  });
+  return getAssignment(id);
+}
+
+export async function removeAssignment(req: Request, id: string) {
+  const client = await loadClient(id);
+  const before = client.partnerAssignment as StoredAssignment;
+  if (!before) return assignmentView(null, new Map());
+  client.set('partnerAssignment', undefined);
+  await client.save();
+  await recordAudit({
+    req,
+    action: 'client.partner_unassigned',
+    entity: 'Client',
+    entityId: client._id,
+    before: { partnerId: before.partnerId },
+    after: null,
+  });
+  return assignmentView(null, new Map());
+}
+
+/** Client portal: the signed-in client's partner, read-only (no admin details). */
+export async function getOwnAssignment(user: AuthUser) {
+  if (!user.clientId) throw AppError.notFound('Client');
+  const client = await Client.findById(user.clientId).select('partnerAssignment').lean();
+  if (!client) throw AppError.notFound('Client');
+  const a = client.partnerAssignment as StoredAssignment;
+  return assignmentView(a, await peopleFor([a]), { includeAdmin: false });
+}
+
+/**
+ * Partner portal: only the clients assigned to this partner, and of their projects only the
+ * ones this partner is actually on (project access is unchanged by the client assignment).
+ */
+export async function listAssignedClients(user: AuthUser) {
+  const clients = await Client.find({ 'partnerAssignment.partnerId': user._id, archivedAt: null })
+    .sort({ companyName: 1 })
+    .lean();
+  const projects = clients.length
+    ? await Project.find({
+        clientId: { $in: clients.map((c) => c._id) },
+        partnerIds: user._id,
+        archivedAt: null,
+      })
+        .select('title projectCode status clientId')
+        .sort({ createdAt: -1 })
+        .lean()
+    : [];
+  return clients.map((c) => ({
+    id: String(c._id),
+    clientCode: c.clientCode,
+    companyName: c.companyName,
+    contactName: c.contactName,
+    email: c.email,
+    phone: c.phone,
+    status: c.status,
+    assignedAt: c.partnerAssignment?.assignedAt,
+    projects: projects
+      .filter((p) => String(p.clientId) === String(c._id))
+      .map((p) => ({
+        id: String(p._id),
+        title: p.title,
+        projectCode: p.projectCode,
+        status: p.status,
+      })),
+  }));
 }
 
 /** The signed-in client's own company profile (no internal notes). */

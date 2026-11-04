@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   Role,
+  assignClientPartnerSchema,
   createClientSchema,
   idParamSchema,
   inviteClientUserSchema,
@@ -24,8 +25,19 @@ clientsRouter.use(authenticate);
 clientsRouter.get('/me', authorize(Role.CLIENT), async (req, res) => {
   ok(res, await svc.getOwnClient(currentUser(req)));
 });
+// Read-only for the client: who their Innovexa partner is.
+clientsRouter.get('/me/assignment', authorize(Role.CLIENT), async (req, res) => {
+  ok(res, await svc.getOwnAssignment(currentUser(req)));
+});
+// Partner portal: only the clients assigned to the signed-in partner.
+clientsRouter.get('/assigned', authorize(Role.PARTNER), async (req, res) => {
+  ok(res, await svc.listAssignedClients(currentUser(req)));
+});
 
 clientsRouter.use(authorize(Role.ADMIN));
+clientsRouter.get('/assignable-partners', async (_req, res) => {
+  ok(res, await svc.listAssignablePartners());
+});
 clientsRouter.get('/', validate({ query: listClientsQuerySchema }), async (req, res) => {
   const { items, meta } = await svc.listClients(valid(req, 'query'));
   ok(res, items, 200, meta);
@@ -57,6 +69,21 @@ clientsRouter.patch(
     ok(res, svc.clientView(client.toObject()));
   },
 );
+clientsRouter.get('/:id/assignment', validate({ params: idParamSchema }), async (req, res) => {
+  ok(res, await svc.getAssignment(id(req)));
+});
+// Assign, or change, the client's partner.
+clientsRouter.put(
+  '/:id/assignment',
+  validate({ params: idParamSchema, body: assignClientPartnerSchema }),
+  async (req, res) => {
+    const { partnerId } = valid<{ partnerId: string }>(req, 'body');
+    ok(res, await svc.assignPartner(req, id(req), partnerId));
+  },
+);
+clientsRouter.delete('/:id/assignment', validate({ params: idParamSchema }), async (req, res) => {
+  ok(res, await svc.removeAssignment(req, id(req)));
+});
 clientsRouter.post(
   '/:id/logins',
   validate({ params: idParamSchema, body: inviteClientUserSchema }),
